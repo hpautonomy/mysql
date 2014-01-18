@@ -11,6 +11,17 @@ v4.1.0 (2014-02-25)
 - [COOK-4206] - create root@127.0.0.1, as well as root@localhost
 
 
+v4.0.20 (2014-01-18)
+--------------------
+* [COOK-3931] - MySQL Server Recipe Regression for Non-LTS Ubuntu Versions
+* [COOK-3945] - MySQL cookbook fails on Ubuntu 13.04/13.10
+* [COOK-3966] - mysql::server recipe can't find a template with debian 7.x
+* [COOK-3985] - Missing /etc/mysql/debian.cnf template on mysql::_server_debian.rb recipe (mysql 4.0.4)
+* [COOK-3974] - debian.cnf not updated
+* [COOK-4001] - Pull request: Fixes for broken mysql::server on Debian
+* [COOK-4071] - Mysql cookbook doesn't work on debian 7.2
+
+
 v4.0.14
 -------
 Fixing style cops
