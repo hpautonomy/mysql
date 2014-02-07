@@ -105,7 +105,10 @@ template '/etc/mysql/my.cnf' do
   group 'root'
   mode '0644'
   notifies :run, 'bash[move mysql data to datadir]', :immediately
-  notifies :reload, 'service[mysql]'
+  # HP Autonomy IOD-specific immediate restart
+  #notifies :reload, 'service[mysql]'
+  notifies :reload, 'service[mysql]', :immediately
+  # End HP Autonomy IOD-specific
 end
 
 # don't try this at home

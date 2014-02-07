@@ -34,6 +34,13 @@ end
 default['mysql']['auto-increment-increment']        = 1
 default['mysql']['auto-increment-offset']           = 1
 
+# HP Autonomy IOD-specific MySQL SSL Configs
+default['mysql']['use_ssl'] = true
+default['mysql']['cert_file'] = "cert.pem"
+default['mysql']['key_file'] = "key.pem"
+default['mysql']['ssl_ca'] = nil
+# End HP Autonomy IOD-specific
+
 default['mysql']['allow_remote_root']               = false
 default['mysql']['remove_anonymous_users']          = false
 default['mysql']['remove_test_database']            = false
