@@ -40,6 +40,16 @@ if loaded_recipes.include?('mysql::percona_repo')
   end
 end
 
+if loaded_recipes.include?('mysql::_mariadb_repo') || node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+  if !( loaded_recipes.include?('mysql::_mariadb_repo') )
+    include_recipe 'mysql::_mariadb_repo'
+  end
+  case node['platform_family']
+  when 'debian'
+    resources('apt_repository[mariadb]').run_action(:add)
+  end
+end
+
 node['mysql']['client']['packages'].each do |name|
   resources("package[#{name}]").run_action(:install)
 end

@@ -43,6 +43,10 @@ when 'mac_os_x'
   include_recipe 'homebrew::default'
 end
 
+if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+  include_recipe 'mysql::_mariadb_repo'
+end
+
 node['mysql']['client']['packages'].each do |name|
   package name
 end

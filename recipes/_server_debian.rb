@@ -2,17 +2,17 @@
 # Set up preseeding data for debian packages
 #---
 directory '/var/cache/local/preseeding' do
-  owner 'root'
-  group 'root'
-  mode '0755'
-  recursive true
+  owner     'root'
+  group     'root'
+  mode      '0755'
+  recursive  true
 end
 
 template '/var/cache/local/preseeding/mysql-server.seed' do
-  source 'mysql-server.seed.erb'
-  owner 'root'
-  group 'root'
-  mode '0600'
+  source   'mysql-server.seed.erb'
+  owner    'root'
+  group    'root'
+  mode     '0600'
   notifies :run, 'execute[preseed mysql-server]', :immediately
 end
 
@@ -24,10 +24,35 @@ end
 #----
 # Install software
 #----
+
+# Either the apt cookbook doesn't pass-through environment variables, or dpkg
+# ignores them during installation.  Either way, this unfortunately doesn't
+# work :(
+#ENV['DEBIAN_SCRIPT_DEBUG'] = '1'
+#ENV['MYSQLD_STARTUP_TIMEOUT'] = '120'
+
 node['mysql']['server']['packages'].each do |name|
   package name do
+    if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+      # NB: '-o Debug::pkgDPkgPM="true"' doesn't appear to show dpkg command-invocations, but does prevent package installation...
+      options '-o DPkg::NoTriggers="true" -o PackageManager::Configure="smart" -o DPkg::ConfigurePending="false" -o DPkg::TriggersPending="false" -o DPkg::options="{\"--debug=10043\"; \"--force-confnew\"; \"--force-confdef\"; };"'
+    end
     action :install
   end
+end
+
+cookbook_file '/etc/init.d/mysql' do
+  path          '/etc/init.d/mysql.dpkg-new'
+  source        'mysql.initd'
+  owner         'root'
+  group         'root'
+  mode          '0755'
+  atomic_update  true
+  backup         false
+end
+
+execute 'dpkg-configure-pending' do
+  command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
 end
 
 node['mysql']['server']['directories'].each do |key, value|
@@ -35,8 +60,8 @@ node['mysql']['server']['directories'].each do |key, value|
     owner     'mysql'
     group     'mysql'
     mode      '0775'
+    recursive  true
     action    :create
-    recursive true
   end
 end
 
@@ -44,25 +69,29 @@ end
 # Grants
 #----
 template '/etc/mysql_grants.sql' do
-  source 'grants.sql.erb'
-  owner  'root'
-  group  'root'
-  mode   '0600'
+  source   'grants.sql.erb'
+  owner    'root'
+  group    'root'
+  mode     '0600'
   notifies :run, 'execute[install-grants]', :immediately
 end
 
 cmd = install_grants_cmd
 execute 'install-grants' do
-  command cmd
-  action :nothing
+  command  cmd
+  action  :nothing
 end
 
 template '/etc/mysql/debian.cnf' do
-  source 'debian.cnf.erb'
-  owner 'root'
-  group 'root'
-  mode '0600'
-  notifies :reload, 'service[mysql]'
+  source   'debian.cnf.erb'
+  owner    'root'
+  group    'root'
+  mode     '0600'
+  # HP Autonomy IOD-specific
+  # ':reload' action is thought to be unreliable...
+  #notifies :reload, 'service[mysql]'
+  notifies :restart, 'service[mysql]', :immediately
+  # End HP Autonomy IOD-specific
 end
 
 #----
@@ -79,34 +108,35 @@ directory node['mysql']['data_dir'] do
   owner     'mysql'
   group     'mysql'
   action    :create
-  recursive true
+  recursive  true
 end
 
 template '/etc/init/mysql.conf' do
-  source 'init-mysql.conf.erb'
-  only_if { node['platform_family'] == 'ubuntu' }
+  source   'init-mysql.conf.erb'
+  only_if { node['platform_family'] == 'ubuntu' && ( node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' ) }
 end
 
 template '/etc/apparmor.d/usr.sbin.mysqld' do
-  source 'usr.sbin.mysqld.erb'
-  action :create
+  source   'usr.sbin.mysqld.erb'
+  action   :create
   notifies :reload, 'service[apparmor-mysql]', :immediately
+  only_if { node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' }
 end
 
 service 'apparmor-mysql' do
   service_name 'apparmor'
-  action :nothing
-  supports :reload => true
+  action       :nothing
+  supports     :reload => true
 end
 
 template '/etc/mysql/my.cnf' do
-  source 'my.cnf.erb'
-  owner 'root'
-  group 'root'
-  mode '0644'
-  notifies :run, 'bash[move mysql data to datadir]', :immediately
+  source   'my.cnf.erb'
+  owner    'root'
+  group    'root'
+  mode     '0644'
+  notifies :run,     'bash[move mysql data to datadir]', :immediately
   # HP Autonomy IOD-specific immediate restart
-  #notifies :reload, 'service[mysql]'
+  #notifies :reload,  'service[mysql]'
   notifies :restart, 'service[mysql]', :immediately
   # End HP Autonomy IOD-specific
 end
@@ -115,19 +145,27 @@ end
 # http://ubuntuforums.org/showthread.php?t=804126
 bash 'move mysql data to datadir' do
   user 'root'
-  code <<-EOH
-  /usr/sbin/service mysql stop &&
-  mv /var/lib/mysql/* #{node['mysql']['data_dir']} &&
-  /usr/sbin/service mysql start
-  EOH
+  if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+    code <<-EOH
+    /etc/init.d/mysql stop &&
+    mv /var/lib/mysql/* #{node['mysql']['data_dir']} &&
+    /etc/init.d/mysql start
+    EOH
+  else
+    code <<-EOH
+    /usr/sbin/service mysql stop &&
+    mv /var/lib/mysql/* #{node['mysql']['data_dir']} &&
+    /usr/sbin/service mysql start
+    EOH
+  end
   action :nothing
   only_if "[ '/var/lib/mysql' != #{node['mysql']['data_dir']} ]"
   only_if "[ `stat -c %h #{node['mysql']['data_dir']}` -eq 2 ]"
-  not_if '[ `stat -c %h /var/lib/mysql/` -eq 2 ]'
+  not_if  '[ `stat -c %h /var/lib/mysql/` -eq 2 ]'
 end
 
 service 'mysql' do
   service_name 'mysql'
   supports     :status => true, :restart => true, :reload => true
-  action       [:enable, :start]
+  action      [:enable, :start]
 end

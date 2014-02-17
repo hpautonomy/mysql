@@ -5,7 +5,15 @@ when 'debian'
   # Keep in this namespace for backwards compat
   default['mysql']['data_dir'] = '/var/lib/mysql'
 
-  default['mysql']['server']['packages'] = %w{ mysql-server apparmor-utils }
+  case node['mysql']['implementation']
+    when 'mariadb'
+      default['mysql']['server']['packages'] = %w{ mariadb-server }
+    when 'galera'
+      default['mysql']['server']['packages'] = %w{ galera mariadb-galera-server }
+    else
+      default['mysql']['server']['packages'] = %w{ mysql-server apparmor-utils }
+  end
+
   default['mysql']['server']['slow_query_log']       = 1
   default['mysql']['server']['slow_query_log_file']  = '/var/log/mysql/slow.log'
 

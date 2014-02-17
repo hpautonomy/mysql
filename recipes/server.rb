@@ -39,6 +39,10 @@ else
   node.save
 end
 
+if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+  include_recipe 'mysql::_mariadb_repo'
+end
+
 case node['platform_family']
 when 'rhel'
   include_recipe 'mysql::_server_rhel'
