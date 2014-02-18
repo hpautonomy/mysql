@@ -49,12 +49,12 @@ cookbook_file '/etc/init.d/mysql' do
   mode          '0755'
   atomic_update  true
   backup         false
-  only_if { node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' }
+  only_if { node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' }
 end
 
 execute 'dpkg-configure-pending' do
   command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
-  only_if { node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' }
+  only_if { node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' }
 end
 
 node['mysql']['server']['directories'].each do |key, value|
