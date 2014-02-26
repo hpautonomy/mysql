@@ -20,7 +20,7 @@
 case node[ 'platform_family' ]
   when 'debian'
     include_recipe 'apt::default'
-  
+
     apt_repository 'mariadb' do
       uri          node[ 'mysql' ][ 'mariadb' ][ 'apt_uri']
       distribution node[ 'lsb' ][ 'codename' ]
@@ -29,7 +29,7 @@ case node[ 'platform_family' ]
       key          node[ 'mysql' ][ 'mariadb' ][ 'apt_key_id' ]
       action       :add
     end
-  
+
     apt_preference 'mariadb' do
       glob         '*'
       pin          "origin #{ node[ 'mysql' ][ 'mariadb' ][ 'apt_uri'] }"
