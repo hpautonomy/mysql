@@ -96,6 +96,14 @@ template '/etc/mysql/debian.cnf' do
   # End HP Autonomy IOD-specific
 end
 
+template '/etc/mysql/debian.cnf' do
+  source 'debian.cnf.erb'
+  owner 'root'
+  group 'root'
+  mode '0600'
+  notifies :reload, 'service[mysql]'
+end
+
 #----
 # data_dir
 #----
@@ -166,7 +174,11 @@ bash 'move mysql data to datadir' do
   not_if  '[ `stat -c %h /var/lib/mysql/` -eq 2 ]'
 end
 
+service_provider = Chef::Provider::Service::Upstart if 'ubuntu' == node['platform'] &&
+  Chef::VersionConstraint.new('>= 13.10').include?(node['platform_version'])
+
 service 'mysql' do
+  provider service_provider
   service_name 'mysql'
   supports     :status => true, :restart => true, :reload => true
   action      [:enable, :start]
