@@ -10,9 +10,32 @@ class Chef
           true
         end
 
+        pkgs = %w(mysql-client libmysqlclient-dev)
+        if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+          include_recipe 'apt::default'
+
+          apt_repository 'mariadb' do
+            uri          node[ 'mysql' ][ 'mariadb' ][ 'apt_uri']
+            distribution node[ 'lsb' ][ 'codename' ]
+            components   %w(main)
+            keyserver    node[ 'mysql' ][ 'mariadb' ][ 'apt_keyserver' ]
+            key          node[ 'mysql' ][ 'mariadb' ][ 'apt_key_id' ]
+            action       :add
+          end
+
+          apt_preference 'mariadb' do
+            glob         '*'
+            pin          "origin #{ node[ 'mysql' ][ 'mariadb' ][ 'apt_uri'] }"
+            pin_priority '1000'
+            action       :add
+          end
+
+          pkgs = %w(mariadb-client libmariadbclient-dev)
+        end
+
         action :create do
           converge_by 'ubuntu pattern' do
-            %w(mysql-client libmysqlclient-dev).each do |p|
+            pkgs.each do |p|
               package p do
                 action :install
               end
@@ -22,7 +45,7 @@ class Chef
 
         action :delete do
           converge_by 'ubuntu pattern' do
-            %w(mysql-client libmysqlclient-dev).each do |p|
+            pkgs.each do |p|
               package p do
                 action :remove
               end

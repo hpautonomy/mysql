@@ -326,6 +326,22 @@ skip-show-database
 # ssl-cert=/etc/mysql/server-cert.pem
 # ssl-key=/etc/mysql/server-key.pem
 
+# HP Autonomy IOD-specific MySQL SSL Configs
+<% if node['mysql']['use_ssl'] %>
+ssl
+<% if  node['mysql']['cert_file'] %>
+ssl-cert=/etc/mysql/<%= node['mysql']['cert_file'] %>
+<% end %>
+<% if  node['mysql']['key_file'] %>
+ssl-key=/etc/mysql/<%= node['mysql']['key_file']%>
+<% end %>
+<% if  node['mysql']['ssl_ca'] %>
+ssl-ca=/etc/mysql/<%= node['mysql']['ssl_ca']%>
+<% end %>
+<% end %>
+# End HP Autonomy IOD-specific
+
+
 [mysqldump]
 quick
 quote-names

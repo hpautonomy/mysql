@@ -20,13 +20,15 @@ class Chef
         @version = default_version_for(
           node['platform'],
           node['platform_family'],
-          node['platform_version']
+          node['platform_version'],
+          node['implementation']
           )
 
         @package_name = package_name_for(
           node['platform'],
           node['platform_family'],
           node['platform_version'],
+          node['implementation'],
           @version
           )
 
@@ -75,6 +77,7 @@ class Chef
           node['platform'],
           node['platform_family'],
           node['platform_version'],
+          node['implementation'],
           arg
           )
 
@@ -89,6 +92,7 @@ class Chef
                 node['platform'],
                 node['platform_family'],
                 node['platform_version'],
+                node['implementation'],
                 arg
                 ).nil?
             end
@@ -117,7 +121,7 @@ class Chef
       private
 
       def self.validate_port(port)
-        port.to_i > 1024 && port.to_i < 65_535
+        port.to_i > 1023 && port.to_i < 65_536
       end
     end
   end

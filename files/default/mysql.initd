@@ -1,0 +1,377 @@
+#!/bin/bash
+#
+# MariaDB init script, standardised and modified to use start-stop-daemon.
+# Changes Copyright 2014 Stuart Shelton, HP Autonomy.
+#
+#
+### BEGIN INIT INFO
+# Provides:          mysql
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      $network $named $time
+# Should-Stop:       $network $named $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start and stop the mysql database server daemon
+# Description:       Controls the main MariaDB database server daemon "mysqld"
+#                    and its wrapper script "mysqld_safe".
+### END INIT INFO
+#
+
+# Exit immediately if pipeline element, sub-shell command, or braced-section
+# returns 1...
+#set -e
+
+# Abort on unbound variable usage...
+set -u
+
+# Impose sane pipe-handing
+set -o pipefail
+
+if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
+	# Print input lines as they are read...
+	set -v
+	# Show the results of all command-expansions...
+	set -x
+fi
+
+SPACENEEDED="$(( 50 * 1024 * 1024 ))"
+
+PREFIX='/usr'
+EPREFIX="${PREFIX:-/usr}"
+BINDIR="${EPREFIX%/}/bin"
+SBINDIR="${EPREFIX%/}/sbin"
+SYSCONFDIR="/etc"
+LOCALSTATEDIR="/var"
+
+#SELF="$( cd "$( dirname "${0:-}" )"; pwd -P )/$( basename "${0:-}" )"
+SELF="$( readlink -f "${0:-}" )"
+
+CONF="${SYSCONFDIR}"/mysql/my.cnf
+MYSQLD="${SBINDIR}"/mysqld
+MYADMIN="${BINDIR}/mysqladmin --defaults-file=${SYSCONFDIR}/mysql/debian.cnf"
+
+# Priority can be overriden; '-s' adds output to stderr
+ERR_LOGGER="logger -p daemon.err -t ${SYSCONFDIR}/init.d/mysql -i"
+
+test -x "${MYSQLD}" || exit 1
+
+test -s /lib/lsb/init-functions || exit 1
+. /lib/lsb/init-functions || exit 1
+
+# mysqladmin likes to read /root/.my.cnf. This is usually not what I want
+# as many admins e.g. only store a password without a username there and
+# so break my scripts.
+export HOME="${SYSCONFDIR}"/mysql
+
+## Fetch a particular option from mysql's invocation.
+#
+# Usage: void mysqld_get_param option
+#
+mysqld_get_param() {
+	[[ -n "${1:-}" ]] || return 1
+
+	"${MYSQLD}" --print-defaults    \
+		| tr " " "\n"           \
+		| grep -- "--${1}"      \
+		| tail -n 1             \
+		| cut -d'=' -f 2
+} # mysqld_get_param
+
+## Do some sanity checks before even trying to start mysqld.
+#
+sanity_checks() {
+	# Check for config file
+	if ! [[ -r "${CONF}" ]]; then
+		log_warning_msg "$0: WARNING: ${CONF} cannot be read. See" \
+			"README.Debian.gz"
+		echo                "WARNING: ${CONF} cannot be read. See" \
+			"README.Debian.gz" | $ERR_LOGGER
+	fi
+
+	# Check for diskspace shortage
+	local datadir="$( mysqld_get_param datadir )"
+
+	(
+		  export LC_ALL=C
+		  export BLOCKSIZE=
+		  df --portability "$datadir"/. \
+		| tail -n 1                     \
+		| awk "{ exit ( \$4 > $(( SPACENEEDED )) ) }"
+	)
+	if ! (( ${?} )); then
+		log_failure_msg "$0: ERROR: The partition with '$datadir' is" \
+			"too full!"
+		echo                "ERROR: The partition with '$datadir' is" \
+			"too full!" | $ERR_LOGGER
+		exit 1
+	fi
+} # sanity_checks
+
+## Checks if there is a server running and if so whether it is accessible.
+#
+# Usage: boolean mysqld_status [check_alive|check_dead] [warn|nowarn]
+#  check_alive insists on a pingable server
+#  check_dead also fails if there is a lost mysqld in the process list
+#
+mysqld_status () {
+	local pidfile="$( mysqld_get_param pid-file 2>/dev/null )"
+	local user="$( mysqld_get_param user 2>/dev/null )"
+	local args
+
+	#if [[ -s "${pidfile}" ]] \
+	#	&& ps "$( cat "${pidfile}" )" >/dev/null 2>&1
+	#then
+	#	ps_alive=1
+	#fi
+
+	if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
+		args="--verbose"
+	fi
+	start-stop-daemon                               \
+		${pidfile:+--pidfile "${pidfile}"}      \
+		--exec "${BINDIR}"/mysqld_safe          \
+		${user:+--user "${user}"}               \
+		${verbose:---quiet}                     \
+		--status
+	local -i ps_alive=$(( !( ${?} ) ))
+
+	# bash always returns '0' if the following two lines are conjoined...
+	local ping_output
+	ping_output="$( ${MYADMIN} ping 2>&1 )"
+	local -i ping_alive=$(( !( ${?} ) ))
+
+	if [[ "${1}" == "check_alive" ]] \
+		&& (( ping_alive ))
+	then
+		# EXIT_SUCCESS
+		return 0
+	elif [[ "${1}" == "check_dead" ]] \
+		&& (( !( ping_alive || ps_alive ) ))
+	then
+		# EXIT_SUCCESS
+		return 0
+	else
+		if [[ "${2}" == "warn" ]]; then
+			  echo -e "'mysqld processes are running and" \
+				"'${MYADMIN} ping' resulted in\n" \
+				"${ping_output}" \
+			| "${ERR_LOGGER}" -p daemon.debug
+		fi
+		# EXIT_FAILURE
+		return 1
+	fi
+} # mysqld_status
+
+#
+# main()
+#
+
+function main() {
+	case "${1:-}" in
+		'start')
+			local -i timeout=${MYSQLD_STARTUP_TIMEOUT:-120}
+
+			sanity_checks
+
+			# Start daemon
+			log_daemon_msg "Starting MariaDB database server" "mysqld"
+
+			if mysqld_status check_alive nowarn; then
+				log_progress_msg "already running"
+				log_end_msg 0
+			else
+				local pidfile="$( mysqld_get_param pid-file 2>/dev/null )"
+				local user="$( mysqld_get_param user 2>/dev/null )"
+				local args
+				local -i i
+
+				# Could be removed during boot
+				test -e "${LOCALSTATEDIR}"/run/mysqld \
+					|| install \
+						-m 755 \
+						-o mysql \
+						-g root \
+						-d "${LOCALSTATEDIR}"/run/mysqld
+
+				# Remove stale PID files
+				[[ -e "${pidfile}" ]] && rm -f "${pidfile}" >/dev/null 2>&1
+
+				if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
+					args="--verbose"
+				fi
+
+				# Load AppArmor profile
+				if type -pf aa-status >/dev/null 2>&1; then
+					if aa-status --enabled 2>/dev/null; then
+						apparmor_parser \
+							-r ${SYSCONFDIR}/apparmor.d/usr.sbin.mysqld
+					fi
+				else
+					[[ -x /lib/init/apparmor-profile-load ]] && \
+						/lib/init/apparmor-profile-load usr.sbin.mysqld
+				fi
+
+				## Start MariaDB!
+				#if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
+				#	"${BINDIR}"/mysqld_safe "${@:2}" &
+				#else
+				#	"${BINDIR}"/mysqld_safe "${@:2}" >/dev/null 2>&1 &
+				#fi
+				start-stop-daemon                             \
+					${pidfile:+--pidfile "${pidfile}"}    \
+					--exec "${BINDIR}"/mysqld_safe        \
+					${user:+--user "${user}"}             \
+					--chdir "/"                           \
+					--umask 077                           \
+					--background                          \
+					${verbose:+--verbose}                 \
+					--start                               \
+					-- "${@:2}" ${args:-}
+
+				local microsleep="1"
+				local -i multiplier=1
+				if type -pf dc >/dev/null 2>&1; then
+					if sleep 0.1 >/dev/null 2>&1; then
+						microsleep="0.1"
+						multiplier=10
+					fi
+				fi
+
+				# 6s was reported in #352070 to be too few when using
+				# ndbcluster
+				(( timeout )) || timeout=120
+				if (( 1 != multiplier )); then
+					timeout=$(
+						  dc <<<"${timeout} ${multiplier} * p" \
+						| sed 's/\.0$//'
+					)
+				fi
+				for i in $( seq 1 ${timeout} ); do
+					sleep "${microsleep}"
+					if mysqld_status check_alive nowarn; then
+						break
+					fi
+					(( i % multiplier )) || log_progress_msg "."
+				done
+				if mysqld_status check_alive warn; then
+					log_end_msg 0
+
+					# Run site-local post-up script...
+					local output="$(
+						"${SYSCONFDIR}"/mysql/debian-start
+					)"
+					[[ -n "${output}" ]] && \
+						log_action_msg "${output}"
+				else
+					log_end_msg 1
+					log_failure_msg "Please see syslog for details"
+				fi
+			fi
+			;;
+
+		'stop')
+			local -i timeout=${MYSQLD_SHUTDOWN_TIMEOUT:-600}
+			local -i r
+
+			# * As a passwordless mysqladmin (e.g. via ~/.my.cnf) must be possible
+			# at least for cron, we can rely on it here, too. (although we have
+			# to specify it explicit as e.g. sudo environments points to the normal
+			# users home and not /root)
+			#
+			# ^^^ WTF?? ^^^
+
+			if mysqld_status check_dead nowarn; then
+				log_daemon_msg "MariaDB database server already stopped"
+				log_end_msg 0
+			else
+				log_daemon_msg "Stopping MariaDB database server" "mysqld"
+
+				#set +e
+				output="$( ${MYADMIN} shutdown 2>&1 )"
+				r=${?}
+				#set -e
+				if (( r )); then
+					log_end_msg 1
+					[[ "${VERBOSE}" != "no" ]] && \
+						log_failure_msg "Error: ${output}"
+					#log_daemon_msg "Killing MariaDB database" \
+					#	"server by signal" "mysqld"
+					#killall -15 mysqld
+					#server_down=
+					#for i in `seq 1 600`; do
+					#	sleep 1
+					#	if mysqld_status check_dead nowarn; then
+					#		server_down=1
+					#		break
+					#	fi
+					#done
+					#if test -z "$server_down"; then
+					#	killall -9 mysqld
+					#fi
+					log_daemon_msg "'${MYADMIN}' failed to stop" \
+						"mysqld: stopping with start-stop-daemon"
+
+					(( timeout )) || timeout=600
+					if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
+						args="--verbose"
+					fi
+					start-stop-daemon                      \
+						--pidfile "${pidfile}"         \
+						--exec "${BINDIR}"/mysqld_safe \
+						--user "${user}"               \
+						${verbose:+--verbose}          \
+						--stop mysqld                  \
+						--retry "${timeout}"           \
+						--signal TERM
+				fi
+			fi
+
+			if ! mysqld_status check_dead warn; then
+				log_end_msg 1
+				log_failure_msg "Please stop MariaDB manually and read" \
+					"/usr/share/doc/mariadb-server-5.5/README.Debian.gz!"
+				exit 1
+			else
+				log_end_msg 0
+			fi
+		;;
+
+		'restart')
+			# Exit immediately if pipeline element, sub-shell command, or braced-section
+			# returns 1...
+			#set +e
+			"${SELF}" stop
+			#set -e
+			"${SELF}" start
+			;;
+
+		'reload'|'force-reload')
+			log_daemon_msg "Reloading MariaDB database server" "mysqld"
+			${MYADMIN} reload
+			log_end_msg 0
+			;;
+
+		'status')
+			if mysqld_status check_alive nowarn; then
+				log_action_msg "$( ${MYADMIN} version )"
+			else
+				log_action_msg "MariaDB is stopped."
+				exit 3
+			fi
+			;;
+
+		*)
+			echo "Usage: $SELF start|stop|restart|reload|force-reload|status"
+			exit 1
+			;;
+	esac
+
+	return 0
+} # main
+
+main "${@:-}"
+
+exit ${?}
+
+# vi: set ts=4:

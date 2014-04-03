@@ -31,6 +31,14 @@ v4.1.1 (2014-02-25)
 - **[COOK-4206] - create root@127.0.0.1, as well as root@localhost'
 
 
+v4.1.0 (2014-02-25)
+-------------------
+- [COOK-2966] - Address foodcritic failures
+- [COOK-4182] - Template parse failure in /etc/init/mysql.conf (data_dir)
+- [COOK-4198] - Added missing tunable
+- [COOK-4206] - create root@127.0.0.1, as well as root@localhost
+
+
 v4.0.20 (2014-01-18)
 --------------------
 * [COOK-3931] - MySQL Server Recipe Regression for Non-LTS Ubuntu Versions

@@ -12,7 +12,7 @@ manual, found here:
     https://dev.mysql.com/doc/refman/5.1/en/server-system-variables.html
     https://dev.mysql.com/doc/refman/5.5/en/server-system-variables.html
     https://dev.mysql.com/doc/refman/5.6/en/server-system-variables.html
-    
+
 Of the close to 600 variables available, only around 150 were present
 in the template. These seemed to be chosen rather arbitrarily, and
 were the source of most of the tickets found in the issue tracker.
@@ -22,7 +22,7 @@ The Present
 -----------
 Rather than try and encompass every configuration option available,
 this cookbook focuses supplying cross platform service primitives, and
-lets the user supply the configuration. 
+lets the user supply the configuration.
 
 Limited backwards compatibility has been added to aide the transition.
 The old template is available at

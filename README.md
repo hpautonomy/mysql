@@ -13,11 +13,6 @@ platform.
 
 Scope
 -----
-This cookbook is concerned with the "MySQL Community Server",
-particularly those shipped with F/OSS Unix and Linux distributions. It
-does not address forks and value-added repackaged MySQL distributions
-like Drizzle, MariaDB, or Percona.
-
 This cookbook does not try to encompass every single configuration
 option available for MySQL. Instead, it provides a "just enough" to
 get a MySQL server running, then allows the user to specify additional
@@ -95,12 +90,12 @@ Include `'recipe[mysql::server]'` or `'recipe[mysql::client]'` in your run_list.
     node.set['mysql']['server_root_password'] = 'yolo'
     node.set['mysql']['port'] = '3308'
     node.set['mysql']['data_dir'] = '/data'
-    
+
     include_recipe 'mysql::server'
 
     template '/etc/mysql/conf.d/mysite.cnf' do
       owner 'mysql'
-      owner 'mysql'      
+      owner 'mysql'
       source 'mysite.cnf.erb'
       notifies :restart, 'mysql_service[default]'
     end
@@ -109,7 +104,7 @@ Include `'recipe[mysql::server]'` or `'recipe[mysql::client]'` in your run_list.
 
     template '/etc/mysql/conf.d/mysite.cnf' do
       owner 'mysql'
-      owner 'mysql'      
+      owner 'mysql'
       source 'mysite.cnf.erb'
       notifies :restart, 'mysql_service[default]'
     end

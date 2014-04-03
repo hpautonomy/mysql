@@ -24,40 +24,88 @@ class Chef
               action :install
             end
 
-            directory '/var/cache/local/preseeding' do
-              owner 'root'
-              group 'root'
-              mode '0755'
-              action :create
-              recursive true
-            end
+            if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+              if node['mysql']['implementation'] == 'mariadb'
+                pkgs=%w(mariadb-server)
+              else
+                pkgs=%w(galera mariadb-galera-server)
+              end
 
-            template '/var/cache/local/preseeding/mysql-server.seed' do
-              cookbook 'mysql'
-              source 'debian/mysql-server.seed.erb'
-              owner 'root'
-              group 'root'
-              mode '0600'
-              action :create
-              notifies :run, 'execute[preseed mysql-server]', :immediately
-            end
+              pkgs.each do |p|
+                package p do
+                  options '-o DPkg::NoTriggers="true" '           + \
+                          '-o PackageManager::Configure="smart" ' + \
+                          '-o DPkg::ConfigurePending="false" '    + \
+                          '-o DPkg::TriggersPending="false" '     + \
+                          '-o DPkg::options="{'                   + \
+                            '\"--debug=10043\"; '                 + \
+                            '\"--force-confnew\"; '               + \
+                            '\"--force-confdef\"; '               + \
+                          '};"'
+                  action  :install
+                end
+              end
 
-            execute 'preseed mysql-server' do
-              command '/usr/bin/debconf-set-selections /var/cache/local/preseeding/mysql-server.seed'
-              action  :nothing
-            end
+              cookbook_file '/etc/init.d/mysql' do
+                cookbook      'mysql'
+                source        'mysql.initd'
+                path          '/etc/init.d/mysql.dpkg-new'
+                owner         'root'
+                group         'root'
+                mode          '0755'
+                atomic_update  true
+                backup         false
+                action        :create_if_missing
+              end
 
-            # package automatically initializes database and starts service.
-            # ... because that's totally super convenient.
-            package 'mysql-server' do
-              action :install
-            end
+              execute 'dpkg-configure-pending' do
+                command 'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
+              end
 
-            # service
-            service 'mysql' do
-              provider Chef::Provider::Service::Upstart
-              supports :restart => true
-              action [:start, :enable]
+              # service
+              service 'mysql' do
+                provider Chef::Provider::Service::Init::Debian
+                supports :restart => true
+                action [:start, :enable]
+              end
+
+            else
+
+              directory '/var/cache/local/preseeding' do
+                owner 'root'
+                group 'root'
+                mode '0755'
+                action :create
+                recursive true
+              end
+
+              template '/var/cache/local/preseeding/mysql-server.seed' do
+                cookbook 'mysql'
+                source 'debian/mysql-server.seed.erb'
+                owner 'root'
+                group 'root'
+                mode '0600'
+                action :create
+                notifies :run, 'execute[preseed mysql-server]', :immediately
+              end
+
+              execute 'preseed mysql-server' do
+                command '/usr/bin/debconf-set-selections /var/cache/local/preseeding/mysql-server.seed'
+                action  :nothing
+              end
+
+              # package automatically initializes database and starts service.
+              # ... because that's totally super convenient.
+              package 'mysql-server' do
+                action :install
+              end
+
+              # service
+              service 'mysql' do
+                provider Chef::Provider::Service::Upstart
+                supports :restart => true
+                action [:start, :enable]
+              end
             end
 
             execute 'assign-root-password' do
@@ -93,28 +141,30 @@ class Chef
               action :nothing
             end
 
-            # apparmor
-            directory '/etc/apparmor.d' do
-              owner 'root'
-              group 'root'
-              mode '0755'
-              action :create
-            end
+            if node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera'
+              # apparmor
+              directory '/etc/apparmor.d' do
+                owner 'root'
+                group 'root'
+                mode '0755'
+                action :create
+              end
 
-            template '/etc/apparmor.d/usr.sbin.mysqld' do
-              cookbook 'mysql'
-              source 'apparmor/usr.sbin.mysqld.erb'
-              owner 'root'
-              group 'root'
-              mode '0644'
-              action :create
-              notifies :reload, 'service[apparmor-mysql]', :immediately
-            end
+              template '/etc/apparmor.d/usr.sbin.mysqld' do
+                cookbook 'mysql'
+                source 'apparmor/usr.sbin.mysqld.erb'
+                owner 'root'
+                group 'root'
+                mode '0644'
+                action :create
+                notifies :reload, 'service[apparmor-mysql]', :immediately
+              end
 
-            service 'apparmor-mysql' do
-              service_name 'apparmor'
-              action :nothing
-              supports :reload => true
+              service 'apparmor-mysql' do
+                service_name 'apparmor'
+                action :nothing
+                supports :reload => true
+              end
             end
 
             #
@@ -181,7 +231,11 @@ class Chef
         action :restart do
           converge_by 'ubuntu pattern' do
             service 'mysql' do
-              provider Chef::Provider::Service::Upstart
+              if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+                provider Chef::Provider::Service::Init::Debian
+              else
+                provider Chef::Provider::Service::Upstart
+              end
               supports :restart => true
               action :restart
             end
