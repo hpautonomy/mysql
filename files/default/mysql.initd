@@ -35,7 +35,7 @@ if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
 	set -x
 fi
 
-SPACENEEDED="$(( 50 * 1024 * 1024 ))"
+SPACENEEDED="$(( 50 << 10 ))" # 50MiB of 1KiB blocks...
 
 PREFIX='/usr'
 EPREFIX="${PREFIX:-/usr}"
@@ -59,6 +59,47 @@ test -x "${MYSQLD}" || exit 1
 test -s /lib/lsb/init-functions || exit 1
 . /lib/lsb/init-functions || exit 1
 
+function log_warning() {
+	local message="${@}"
+	local name="$( basename "${0}" )"
+
+	log_warning_msg "${name}: WARNING: ${message}"
+	echo "WARNING: ${message}" | ${ERR_LOGGER}
+
+	return 1
+} # log_warning
+
+function log_failure() {
+	local message="${@}"
+	local name="$( basename "${0}" )"
+
+	log_failure_msg "${name}: ERROR: ${message}"
+	echo "ERROR: ${message}" | ${ERR_LOGGER}
+
+	return 1
+} # log_failure
+
+# Convert input parameter (number of bytes) to Human Readable form
+#
+function bytestohr() {
+	local input="${1}"
+
+	local slist="bytes,KiB,MiB,GiB,TiB,PiB,EiB,ZiB,YiB"
+	local -i power
+	local val vint
+
+	power=1
+	val="$( echo "scale=2; ${input} / 1" | bc )"
+	vint="$( echo "${val} / 1024" | bc )"
+	while (( vint > 0 )); do
+		(( power++ ))
+		val="$( echo "scale=2; ${val} / 1024" | bc )"
+		vint="$( echo "${val} / 1024" | bc )"
+	done
+
+	echo "${val}$( echo "${slist}" | cut -f${power} -d, )"
+}
+
 # mysqladmin likes to read /root/.my.cnf. This is usually not what I want
 # as many admins e.g. only store a password without a username there and
 # so break my scripts.
@@ -76,36 +117,39 @@ mysqld_get_param() {
 		| grep -- "--${1}"      \
 		| tail -n 1             \
 		| cut -d'=' -f 2
+
+	return 0
 } # mysqld_get_param
 
 ## Do some sanity checks before even trying to start mysqld.
 #
 sanity_checks() {
 	# Check for config file
-	if ! [[ -r "${CONF}" ]]; then
-		log_warning_msg "$0: WARNING: ${CONF} cannot be read. See" \
-			"README.Debian.gz"
-		echo                "WARNING: ${CONF} cannot be read. See" \
-			"README.Debian.gz" | $ERR_LOGGER
-	fi
+	[[ -r "${CONF}" ]] || \
+		log_warning "${CONF} cannot be read. See 'README.Debian.gz'"
 
 	# Check for diskspace shortage
 	local datadir="$( mysqld_get_param datadir )"
 
-	(
-		  export LC_ALL=C
-		  export BLOCKSIZE=
-		  df --portability "$datadir"/. \
-		| tail -n 1                     \
-		| awk "{ exit ( \$4 > $(( SPACENEEDED )) ) }"
-	)
-	if ! (( ${?} )); then
-		log_failure_msg "$0: ERROR: The partition with '$datadir' is" \
-			"too full!"
-		echo                "ERROR: The partition with '$datadir' is" \
-			"too full!" | $ERR_LOGGER
-		exit 1
+	if ! [[ -d "${datadir}" ]]; then
+		log_warning "Cannot locate database data directory '${datadir}'"
+	else
+		(
+			  export LC_ALL=C
+			  export BLOCKSIZE=
+			  df --portability "$datadir"/. \
+			| tail -n 1                     \
+			| awk "{ exit ( \$4 > $(( SPACENEEDED )) ) }"
+		)
+		if ! (( ${?} )); then
+			log_failure "The partition containing '${datadir}'" \
+				"does not have $( bytestohr ${SPACENEEDED} )" \
+				"of free space"
+			return 1
+		fi
 	fi
+
+	return 0
 } # sanity_checks
 
 ## Checks if there is a server running and if so whether it is accessible.
@@ -172,7 +216,7 @@ function main() {
 		'start')
 			local -i timeout=${MYSQLD_STARTUP_TIMEOUT:-120}
 
-			sanity_checks
+			sanity_checks || exit 1
 
 			# Start daemon
 			log_daemon_msg "Starting MariaDB database server" "mysqld"
