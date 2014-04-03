@@ -1,60 +1,77 @@
-#----
-# Set up preseeding data for debian packages
-#---
-directory '/var/cache/local/preseeding' do
-  owner     'root'
-  group     'root'
-  mode      '0755'
-  recursive  true
-end
+if node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera'
 
-template '/var/cache/local/preseeding/mysql-server.seed' do
-  source   'mysql-server.seed.erb'
-  owner    'root'
-  group    'root'
-  mode     '0600'
-  notifies :run, 'execute[preseed mysql-server]', :immediately
-end
-
-execute 'preseed mysql-server' do
-  command '/usr/bin/debconf-set-selections /var/cache/local/preseeding/mysql-server.seed'
-  action  :nothing
-end
-
-#----
-# Install software
-#----
-
-# Either the apt cookbook doesn't pass-through environment variables, or dpkg
-# ignores them during installation.  Either way, this unfortunately doesn't
-# work :(
-#ENV['DEBIAN_SCRIPT_DEBUG'] = '1'
-#ENV['MYSQLD_STARTUP_TIMEOUT'] = '120'
-
-node['mysql']['server']['packages'].each do |name|
-  package name do
-    if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
-      # NB: '-o Debug::pkgDPkgPM="true"' doesn't appear to show dpkg command-invocations, but does prevent package installation...
-      options '-o DPkg::NoTriggers="true" -o PackageManager::Configure="smart" -o DPkg::ConfigurePending="false" -o DPkg::TriggersPending="false" -o DPkg::options="{\"--debug=10043\"; \"--force-confnew\"; \"--force-confdef\"; };"'
-    end
-    action :install
+  #----
+  # Set up preseeding data for debian packages
+  #---
+  directory '/var/cache/local/preseeding' do
+    owner     'root'
+    group     'root'
+    mode      '0755'
+    recursive  true
   end
-end
 
-cookbook_file '/etc/init.d/mysql' do
-  path          '/etc/init.d/mysql.dpkg-new'
-  source        'mysql.initd'
-  owner         'root'
-  group         'root'
-  mode          '0755'
-  atomic_update  true
-  backup         false
-  only_if { node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' }
-end
+  template '/var/cache/local/preseeding/mysql-server.seed' do
+    source   'mysql-server.seed.erb'
+    owner    'root'
+    group    'root'
+    mode     '0600'
+    notifies :run, 'execute[preseed mysql-server]', :immediately
+  end
 
-execute 'dpkg-configure-pending' do
-  command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
-  only_if { node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' }
+  execute 'preseed mysql-server' do
+    command '/usr/bin/debconf-set-selections /var/cache/local/preseeding/mysql-server.seed'
+    action  :nothing
+  end
+
+  node['mysql']['server']['packages'].each do |name|
+    package name do
+      action :install
+    end
+  end
+
+else
+
+  #----
+  # Install software
+  #----
+
+  # Either the apt cookbook doesn't pass-through environment variables, or dpkg
+  # ignores them during installation.  Either way, this unfortunately doesn't
+  # work :(
+  #ENV['DEBIAN_SCRIPT_DEBUG'] = '1'
+  #ENV['MYSQLD_STARTUP_TIMEOUT'] = '120'
+
+  node['mysql']['server']['packages'].each do |name|
+    package name do
+      # NB: '-o Debug::pkgDPkgPM="true"' doesn't appear to show dpkg
+      #     command-invocations, but does prevent package installation...
+
+      options '-o DPkg::NoTriggers="true" '           + \
+              '-o PackageManager::Configure="smart" ' + \
+              '-o DPkg::ConfigurePending="false" '    + \
+              '-o DPkg::TriggersPending="false" '     + \
+              '-o DPkg::options="{'                   + \
+                '\"--debug=10043\"; '                 + \
+                '\"--force-confnew\"; '               + \
+                '\"--force-confdef\"; '               + \
+              '};"'
+      action :install
+    end
+  end
+
+  cookbook_file '/etc/init.d/mysql' do
+    path          '/etc/init.d/mysql.dpkg-new'
+    source        'mysql.initd'
+    owner         'root'
+    group         'root'
+    mode          '0755'
+    atomic_update  true
+    backup         false
+  end
+
+  execute 'dpkg-configure-pending' do
+    command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
+  end
 end
 
 node['mysql']['server']['directories'].each do |key, value|
@@ -89,10 +106,10 @@ template '/etc/mysql/debian.cnf' do
   owner    'root'
   group    'root'
   mode     '0600'
+  notifies :reload, 'service[mysql]'
   # HP Autonomy IOD-specific
   # ':reload' action is thought to be unreliable...
-  #notifies :reload, 'service[mysql]'
-  notifies :restart, 'service[mysql]', :immediately
+  #notifies :restart, 'service[mysql]', :immediately
   # End HP Autonomy IOD-specific
 end
 
@@ -121,22 +138,23 @@ directory node['mysql']['data_dir'] do
   recursive  true
 end
 
-template '/etc/init/mysql.conf' do
-  source   'init-mysql.conf.erb'
-  only_if { node['platform_family'] == 'ubuntu' && ( node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' ) }
-end
+if node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera'
+  template '/etc/init/mysql.conf' do
+    source   'init-mysql.conf.erb'
+    only_if { node['platform_family'] == 'ubuntu' }
+  end
 
-template '/etc/apparmor.d/usr.sbin.mysqld' do
-  source   'usr.sbin.mysqld.erb'
-  action   :create
-  notifies :reload, 'service[apparmor-mysql]', :immediately
-  only_if { node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera' }
-end
+  template '/etc/apparmor.d/usr.sbin.mysqld' do
+    source   'usr.sbin.mysqld.erb'
+    action   :create
+    notifies :reload, 'service[apparmor-mysql]', :immediately
+  end
 
-service 'apparmor-mysql' do
-  service_name 'apparmor'
-  action       :nothing
-  supports     :reload => true
+  service 'apparmor-mysql' do
+    service_name 'apparmor'
+    action       :nothing
+    supports     :reload => true
+  end
 end
 
 template '/etc/mysql/my.cnf' do
@@ -145,9 +163,9 @@ template '/etc/mysql/my.cnf' do
   group    'root'
   mode     '0644'
   notifies :run,     'bash[move mysql data to datadir]', :immediately
+  notifies :reload,  'service[mysql]'
   # HP Autonomy IOD-specific immediate restart
-  #notifies :reload,  'service[mysql]'
-  notifies :restart, 'service[mysql]', :immediately
+  #notifies :restart, 'service[mysql]', :immediately
   # End HP Autonomy IOD-specific
 end
 
@@ -174,8 +192,12 @@ bash 'move mysql data to datadir' do
   not_if  '[ `stat -c %h /var/lib/mysql/` -eq 2 ]'
 end
 
-service_provider = Chef::Provider::Service::Upstart if 'ubuntu' == node['platform'] &&
-  Chef::VersionConstraint.new('>= 13.10').include?(node['platform_version'])
+if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+  service_provider = Chef::Provider::Service::Init::Debian if 'ubuntu' == node['platform']
+else
+  service_provider = Chef::Provider::Service::Upstart if 'ubuntu' == node['platform'] &&
+    Chef::VersionConstraint.new('>= 13.10').include?(node['platform_version'])
+end
 
 service 'mysql' do
   provider service_provider
