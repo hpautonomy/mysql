@@ -13,12 +13,12 @@ bind-address                   = 0.0.0.0
 
 # galera settings
 wsrep_provider                 = /usr/lib/galera/libgalera_smm.so
-wsrep_cluster_name             = <%= default['mysql']['galera']['cluster']['name'] %>
-<% if default['mysql']['galera']['cluster']['approach'].eql? 'static' %>
-wsrep_cluster_address          = "gcomm://<%= default['mysql']['galera']['cluster']['hosts'].join(',') + ( default['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + default['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>?pc.wait_prim=no
+wsrep_cluster_name             = <%= node['mysql']['galera']['cluster']['name'] %>
+<% if node['mysql']['galera']['cluster']['approach'].eql? 'static' %>
+wsrep_cluster_address          = "gcomm://<%= node['mysql']['galera']['cluster']['hosts'].join(',') + ( node['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + node['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>?pc.wait_prim=no
 <% end %>
 wsrep_slave_threads            = <%= node['cpu']['real'] * 2 %>
-wsrep_sst_method               = <%= default['mysql']['galera']['cluster']['sst'] %>
+wsrep_sst_method               = <%= node['mysql']['galera']['cluster']['sst'] %>
 
 [sst]
 
