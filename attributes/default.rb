@@ -89,6 +89,6 @@ default['mysql']['galera']['cluster']['sst'] = 'rsync'
 default['mysql']['galera']['cluster']['hosts'] = ['localhost']
 
 # Are we running garbd (Galera Arbitrator daemon) and, if so, where?
-default['mysql']['galera']['cluster']['garbd']['enabled'] = true
+default['mysql']['galera']['cluster']['garbd']['enabled'] = false
 default['mysql']['galera']['cluster']['garbd']['host'] = 'localhost'
 
