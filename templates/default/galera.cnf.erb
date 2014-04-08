@@ -4,15 +4,14 @@
 # mysql settings
 binlog_format                  = ROW
 default-storage-engine         = innodb
-<% if node['mysql']['galera']['cluster']['enabled'] %>
 innodb_autoinc_lock_mode       = 2
+<% if node['mysql']['galera']['cluster']['enabled'] %>
 innodb_doublewrite             = 1
 innodb_locks_unsafe_for_binlog = 1
 query_cache_size               = 0
 query_cache_type               = 0
 bind-address                   = 0.0.0.0
 <% else %>
-#innodb_autoinc_lock_mode       = 2
 #innodb_doublewrite             = 1
 #innodb_locks_unsafe_for_binlog = 1
 #query_cache_size               = 0
@@ -29,7 +28,7 @@ wsrep_cluster_address          = "gcomm://<%= node['mysql']['galera']['cluster']
 <% end %>
 <% else %>
 #wsrep_provider                 = /usr/lib/galera/libgalera_smm.so
-#wsrep_cluster_name             = <%= node['mysql']['galera']['cluster']['name'] %>
+wsrep_cluster_name             = <%= node['mysql']['galera']['cluster']['name'] %>
 #wsrep_cluster_address          = "gcomm://<ip>[,<ip>]*?pc.wait_prim=no"
 <% end %>
 wsrep_slave_threads            = <%= node['cpu']['real'] * 2 %>
