@@ -200,7 +200,7 @@ mysqld_status () {
 			  echo -e "'mysqld processes are running and" \
 				"'${MYADMIN} ping' resulted in\n" \
 				"${ping_output}" \
-			| "${ERR_LOGGER}" -p daemon.debug
+			| ${ERR_LOGGER} -p daemon.debug
 		fi
 		# EXIT_FAILURE
 		return 1
