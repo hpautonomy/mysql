@@ -69,6 +69,15 @@ else
     backup         false
   end
 
+  if node['mysql']['implementation'] == 'galera'
+    template '/etc/mysql/galera.cnf' do
+      source   'galera.cnf.erb'
+      owner    'root'
+      group    'root'
+      mode     '0644'
+    end
+  end
+
   execute 'dpkg-configure-pending' do
     command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
   end
@@ -111,14 +120,6 @@ template '/etc/mysql/debian.cnf' do
   # ':reload' action is thought to be unreliable...
   #notifies :restart, 'service[mysql]', :immediately
   # End HP Autonomy IOD-specific
-end
-
-template '/etc/mysql/debian.cnf' do
-  source 'debian.cnf.erb'
-  owner 'root'
-  group 'root'
-  mode '0600'
-  notifies :reload, 'service[mysql]'
 end
 
 #----
