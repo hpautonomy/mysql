@@ -70,7 +70,7 @@ else
   end
 
   if node['mysql']['implementation'] == 'galera'
-    template '/etc/mysql/galera.cnf' do
+    template '/etc/mysql/conf.d/galera.cnf' do
       source   'galera.cnf.erb'
       owner    'root'
       group    'root'

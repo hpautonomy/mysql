@@ -32,6 +32,8 @@ default['mysql']['implementation'] = 'mysql'
 # Galera configuration:
 #
 
+default['mysql']['galera']['cluster']['enabled'] = false
+
 # Dynamic-configuration approach:
 #  One node is 'master' - this must detect whether there is an existing cluster
 #  which is dropped-out from, and then rejoin this if it is running.  Otherwise
