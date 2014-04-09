@@ -148,7 +148,6 @@ bash 'move mysql data to datadir' do
   code <<-EOH
   mv /var/lib/mysql/* #{node['mysql']['data_dir']}/
   EOH
-  end
   action :nothing
   only_if "[ '/var/lib/mysql' != #{node['mysql']['data_dir']} ]"
   only_if "[ `ls -1A #{node['mysql']['data_dir']}/` -eq 0 ]"
