@@ -82,8 +82,6 @@ if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation
   end
 
   if node['mysql']['implementation'] == 'galera'
-    include_attribute 'mysql::galera'
-
     template '/etc/mysql/conf.d/galera.cnf' do
       source   'galera.cnf.erb'
       owner    'root'

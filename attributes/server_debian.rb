@@ -8,8 +8,12 @@ when 'debian'
   case node['mysql']['implementation']
     when 'mariadb'
       default['mysql']['server']['packages'] = %w{ mariadb-server }
+
     when 'galera'
+      include_attribute 'mysql::galera'
+
       default['mysql']['server']['packages'] = %w{ galera mariadb-galera-server }
+
     else
       default['mysql']['server']['packages'] = %w{ mysql-server apparmor-utils }
   end
