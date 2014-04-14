@@ -162,8 +162,13 @@ end
 # Configure and start database
 #----
 
+log 'strace' do
+  message 'This is a debug branch - please send the contents of "/tmp/dpkg--configure.output" to Ops for analysis'
+  level   :warn
+end
+
 execute 'dpkg-configure-pending' do
-  command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
+  command  'strace -vvfFtTs 1024 -o /tmp/dpkg--configure.output -- dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
 end
 
 #----
