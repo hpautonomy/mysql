@@ -1,6 +1,7 @@
 #----
 # Create essential directories
 #---
+
 directory node['mysql']['data_dir'] do
   owner     'mysql'
   group     'mysql'
@@ -21,6 +22,7 @@ end
 #----
 # Set up preseeding data for debian packages
 #---
+
 directory '/var/cache/local/preseeding' do
   owner     'root'
   group     'root'
@@ -68,6 +70,10 @@ node['mysql']['server']['packages'].each do |name|
     action :install
   end
 end
+
+#----
+# Configuration deployment
+#----
 
 if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
 
@@ -155,6 +161,7 @@ end
 #----
 # Configure and start database
 #----
+
 execute 'dpkg-configure-pending' do
   command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
 end
@@ -162,7 +169,9 @@ end
 #----
 # Grants
 #----
-template '/etc/mysql_grants.sql' do
+
+grants = '/etc/mysql_grants.sql'
+template grants do
   source   'grants.sql.erb'
   owner    'root'
   group    'root'
@@ -170,15 +179,28 @@ template '/etc/mysql_grants.sql' do
   notifies :run, 'execute[install-grants]', :immediately
 end
 
-cmd = install_grants_cmd
-execute 'install-grants' do
-  command  cmd
-  action  :nothing
+#----
+# Services & Helpers
+#---
+
+if node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled']
+
+  execute 'install-grants' do
+    command  install_grants_cmd
+    action  :nothing
+  end
+
+else
+
+  log 'galera-grants' do
+    message 'Default passwords are not set for galera implementations: ' +
+            "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
+	    '"pc.bootstrap=true";' + "', then load grants from '#{grants}'"
+    level   :warn
+  end
+
 end
 
-#----
-# Services
-#---
 service 'apparmor-mysql' do
   provider = Chef::Provider::Service::Init::Debian
   service_name 'apparmor'
