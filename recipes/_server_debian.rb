@@ -176,29 +176,26 @@ template grants do
   owner    'root'
   group    'root'
   mode     '0600'
-  notifies :run, 'execute[install-grants]', :immediately
+  if node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled']
+    notifies :run, 'execute[install-grants]', :immediately
+  end
+end
+
+log 'galera-grants' do
+  message 'Default passwords are not set for galera implementations: ' +
+          "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
+          '"pc.bootstrap=true";' + "', then load grants from '#{grants}'"
+  level   :warn
+  only_if { node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled'] }
 end
 
 #----
 # Services & Helpers
 #---
 
-if node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled']
-
-  execute 'install-grants' do
-    command  install_grants_cmd
-    action  :nothing
-  end
-
-else
-
-  log 'galera-grants' do
-    message 'Default passwords are not set for galera implementations: ' +
-            "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
-	    '"pc.bootstrap=true";' + "', then load grants from '#{grants}'"
-    level   :warn
-  end
-
+execute 'install-grants' do
+  command  install_grants_cmd
+  action  :nothing
 end
 
 service 'apparmor-mysql' do
