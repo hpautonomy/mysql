@@ -212,7 +212,12 @@ mysqld_status () {
 #
 
 function main() {
-	case "${1:-}" in
+	local option="${1:-}" ; shift
+
+	# MySQL/MariaDB is unusual, in that there is an expectation that additional
+	# parameters can be passed to (re)start ...
+
+	case "${option:-}" in
 		'start')
 			local -i timeout=${MYSQLD_STARTUP_TIMEOUT:-120}
 
@@ -271,7 +276,7 @@ function main() {
 					--background                          \
 					${verbose:+--verbose}                 \
 					--start                               \
-					-- "${@:2}" ${args:-}
+					-- "${@}" ${args:-}
 
 				local microsleep="1"
 				local -i multiplier=1
@@ -387,7 +392,7 @@ function main() {
 			#set +e
 			"${SELF}" stop
 			#set -e
-			"${SELF}" start
+			"${SELF}" start "${@:-}"
 			;;
 
 		'reload'|'force-reload')

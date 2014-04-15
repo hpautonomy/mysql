@@ -91,8 +91,8 @@ if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation
     template '/etc/mysql/conf.d/galera.cnf' do
       source   'galera.cnf.erb'
       owner    'root'
-      group    'root'
-      mode     '0644'
+      group    'mysql'
+      mode     '0640'
     end
   end
 
@@ -185,7 +185,7 @@ log 'galera-grants' do
   message 'Default passwords are not set for galera implementations: ' +
           "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
           '"pc.bootstrap=true";' + "', then load grants from '#{grants}'" +
-	  "with command '#{install_grants_cmd}'"
+          "with command '#{install_grants_cmd}'"
   level   :warn
   only_if { node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled'] }
 end

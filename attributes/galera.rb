@@ -22,64 +22,34 @@
 #
 
 default['mysql']['galera']['cluster']['enabled'] = false
-
-# Dynamic-configuration approach:
-#  One node is 'master' - this must detect whether there is an existing cluster
-#  which is dropped-out from, and then rejoin this if it is running.  Otherwise
-#  the master (only) needs to run '--wsrep-new-cluster' in order to establish a
-#  new cluster for other nodes to join.
-# Namely, the master is fixed but the nodes are dynamic (but from a list or DNS)
-#
-# Static-configuration approach:
-#  All nodes are pre-declared before any are started, and are all started with:
-#    --wsrep_cluster_address=gcomm://node1,node2,...,nodex?pc.wait_prim=no
-#  after which "SET GLOBAL wsrep_provider_options='bc.bootstrap=true';" can be
-#  executed on any node to start the cluster.
-# Namely, the nodes are fixed but the cluster-initiator is dynamic, and there
-# is no real concept of a 'master'.
-#
-# The MariaDB project documents the Static approach as 'good practice'.
-#
-
-default['mysql']['galera']['cluster']['approach'] = 'static'
-#default['mysql']['galera']['cluster']['approach'] = 'dynamic'
-
-#
-# Galera Dynamic approach configuration:
-#
-
-# Should hosts for the Dynamic approach come from DNS, or from the hosts list
-# below?
-#default['mysql']['galera']['cluster']['dynamic']['method'] = 'list'
-default['mysql']['galera']['cluster']['dynamic']['method'] = 'dns'
-
-# What DNS hostname can a lookup be performed upon to determine cluster nodes?
-default['mysql']['galera']['cluster']['dynamic']['lookup'] = 'galera-cluster-members'
-
-# Which instance should run '--wsrep-new-cluster' on startup?
-default['mysql']['galera']['cluster']['dynamic']['master'] = 'localhost'
-
-#
-# Galera shared configuration:
-#
+default['mysql']['galera']['cluster']['debug'] = 'ON'
 
 # Cluster name
+#
 default['mysql']['galera']['cluster']['name'] = 'db-cluster'
 
-# State-transfer method
-default['mysql']['galera']['cluster']['sst'] = 'rsync'
-#default['mysql']['galera']['cluster']['sst'] = 'mysqldump'
-#default['mysql']['galera']['cluster']['sst'] = 'xtrabackup'
-#default['mysql']['galera']['cluster']['sst'] = 'xtrabackup-v2'
+# Should the current instance should run '--wsrep-new-cluster' on startup?
+#
+# Override this on *one* node only!
+#
+default['mysql']['galera']['cluster']['master'] = false
 
-# For a Static approach or a Dynamic approach using the 'list' method, what
-# nodes will be in the cluster?
+# State-transfer method
 #
-# N.B. It is critically important that this value is accurate, and an array!
-#
-default['mysql']['galera']['cluster']['hosts'] = ['localhost']
+default['mysql']['galera']['cluster']['sst']['method'] = 'rsync'
+#default['mysql']['galera']['cluster']['sst']['method'] = 'mysqldump'
+#default['mysql']['galera']['cluster']['sst']['method'] = 'xtrabackup'
+#default['mysql']['galera']['cluster']['sst']['method'] = 'xtrabackup-v2'
+default['mysql']['galera']['cluster']['sst']['auth'] = "root:#{ node['mysql']['server_root_password'] }"
 
 # Are we running garbd (Galera Arbitrator daemon) and, if so, where?
+#
 default['mysql']['galera']['cluster']['garbd']['enabled'] = false
 default['mysql']['galera']['cluster']['garbd']['host'] = 'localhost'
+
+# What nodes will form this cluster?
+#
+# N.B. It is critically important that this value is accurate (and an array)!
+#
+default['mysql']['galera']['cluster']['hosts'] = ['localhost']
 

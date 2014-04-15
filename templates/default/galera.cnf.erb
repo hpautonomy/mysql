@@ -2,41 +2,69 @@
 [mysqld]
 
 # mysql settings
-binlog_format                  = ROW
-default-storage-engine         = innodb
-innodb_autoinc_lock_mode       = 2
+binlog_format			=  ROW
+default-storage-engine		=  innodb
+innodb_autoinc_lock_mode	=  2
 <% if node['mysql']['galera']['cluster']['enabled'] %>
-innodb_doublewrite             = 1
-innodb_locks_unsafe_for_binlog = 1
-query_cache_size               = 0
-query_cache_type               = 0
-bind-address                   = 0.0.0.0
+innodb_doublewrite		=  1
+innodb_locks_unsafe_for_binlog	=  1
+query_cache_size		=  0
+query_cache_type		=  0
+bind-address			=  0.0.0.0
 <% else %>
-#innodb_doublewrite             = 1
-#innodb_locks_unsafe_for_binlog = 1
-#query_cache_size               = 0
-#query_cache_type               = 0
-#bind-address                   = 0.0.0.0
+#innodb_doublewrite		=  1
+#innodb_locks_unsafe_for_binlog	=  1
+#query_cache_size		=  0
+#query_cache_type		=  0
+#bind-address			=  0.0.0.0
 <% end %>
 
 # galera settings
+wsrep_debug			=  <%= node['mysql']['galera']['cluster']['debug'] %>
+
 <% if node['mysql']['galera']['cluster']['enabled'] %>
-wsrep_provider                 = /usr/lib/galera/libgalera_smm.so
-wsrep_cluster_name             = <%= node['mysql']['galera']['cluster']['name'] %>
-<% if node['mysql']['galera']['cluster']['approach'].eql? 'static' %>
-wsrep_cluster_address          = "gcomm://<%= node['mysql']['galera']['cluster']['hosts'].join(',') + ( node['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + node['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>?pc.wait_prim=no"
-<% end %>
+wsrep_provider			=  /usr/lib/galera/libgalera_smm.so
+#wsrep_provider_options		= "gcache.size=32G"
+wsrep_cluster_name		=  <%= node['mysql']['galera']['cluster']['name'] %>
+<% if node['mysql']['galera']['cluster']['master'] %>
+
+# The entry below will start a new cluster - once the cluster is bootstrapped,
+# it is IMPERATIVE that the blank '"gcomm://"' entry be substituted with the
+# actual cluster definition, below, to ensure that if the initiator is ever
+# restarted it doesn't attempt to create yet another new cluster, leaving the
+# original permanently one node down...
+#
+# A solution to this is to append the option '?pc.wait_prim=no' to the 'gcomm'
+# definition to allow the database to start without active cluster membership,
+# but this is limited to 'mysqldump' SST and is apparently still a WIP feature.
+#
+wsrep_cluster_address		= "gcomm://"
+#<% end %>wsrep_cluster_address		= "gcomm://<%= node['mysql']['galera']['cluster']['hosts'].join(',') + ( node['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + node['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>"
 <% else %>
-#wsrep_provider                 = /usr/lib/galera/libgalera_smm.so
-wsrep_cluster_name             = <%= node['mysql']['galera']['cluster']['name'] %>
-#wsrep_cluster_address          = "gcomm://<ip>[,<ip>]*?pc.wait_prim=no"
+#wsrep_provider			=  /usr/lib/galera/libgalera_smm.so
+#wsrep_provider_options		= "gcache.size=32G"
+wsrep_cluster_name		=  <%= node['mysql']['galera']['cluster']['name'] %>
 <% end %>
-wsrep_slave_threads            = <%= node['cpu']['real'] * 2 %>
-wsrep_sst_method               = <%= node['mysql']['galera']['cluster']['sst'] %>
+<% if node['cpu']['real'] > 0 %>
+wsrep_slave_threads		=  <%= node['cpu']['real'] * 2 %>
+<% else %>
+wsrep_slave_threads		=  2
+<% end %>
+wsrep_sst_method		=  <%= node['mysql']['galera']['cluster']['sst']['method'] %>
+<% if node['mysql']['galera']['cluster']['sst']['auth'] && node['mysql']['galera']['cluster']['sst']['method'] != 'rsync' %>
+wsrep_sst_auth			= "<%= node['mysql']['galera']['cluster']['sst']['auth'] %>
+<% else %>
+#wsrep_sst_auth			= "user:pass"
+<% end %>
+
+# node configuration
+#wsrep_node_address		= "<% node['ipaddress'] %>"
+#wsrep_node_name		= "<% node['hostname'] %>"
 
 [sst]
 
-streamfmt                      = xbstream
-progress                       = 1
-time                           = 1
+streamfmt			=  xbstream
+progress			=  1
+time				=  1
 
+# vi: set ts=8:
