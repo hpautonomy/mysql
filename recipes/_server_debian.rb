@@ -181,11 +181,12 @@ template grants do
   end
 end
 
+cmd = install_grants_cmd
 log 'galera-grants' do
   message 'Default passwords are not set for galera implementations: ' +
           "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
           '"pc.bootstrap=true";' + "', then load grants from '#{grants}'" +
-          "with command '#{install_grants_cmd}'"
+          "with command '#{cmd}'"
   level   :warn
   only_if { node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled'] }
 end
@@ -195,7 +196,7 @@ end
 #---
 
 execute 'install-grants' do
-  command  install_grants_cmd
+  command  cmd
   action  :nothing
 end
 
