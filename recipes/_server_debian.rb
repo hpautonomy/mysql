@@ -1,6 +1,6 @@
 #----
 # Create essential directories
-#---
+#----
 
 directory node['mysql']['data_dir'] do
   owner     'mysql'
@@ -21,7 +21,7 @@ end
 
 #----
 # Set up preseeding data for debian packages
-#---
+#----
 
 directory '/var/cache/local/preseeding' do
   owner     'root'
@@ -75,7 +75,7 @@ end
 # Configuration deployment
 #----
 
-if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera'
+if( ( node['mysql']['implementation'].eql?('mariadb') ) or ( node['mysql']['implementation'].eql?('galera') ) )
 
   cookbook_file '/etc/init.d/mysql' do
     path          '/etc/init.d/mysql.dpkg-new'
@@ -87,7 +87,7 @@ if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation
     backup         false
   end
 
-  if node['mysql']['implementation'] == 'galera'
+  if( node['mysql']['implementation'].eql?('galera') )
     template '/etc/mysql/conf.d/galera.cnf' do
       source   'galera.cnf.erb'
       owner    'root'
@@ -96,11 +96,11 @@ if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation
     end
   end
 
-else
+else # not( ( node['mysql']['implementation'].eql?('mariadb') ) or ( node['mysql']['implementation'].eql?('galera') ) )
 
   template '/etc/init/mysql.conf' do
     source   'init-mysql.conf.erb'
-    only_if { node['platform_family'] == 'ubuntu' }
+    only_if { node['platform_family'].eql?('ubuntu') }
   end
 
   template '/etc/apparmor.d/usr.sbin.mysqld' do
@@ -176,24 +176,41 @@ template grants do
   owner    'root'
   group    'root'
   mode     '0600'
-  if node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled']
+  if( not( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and not( node['mysql']['galera']['master'] ) ) )
     notifies :run, 'execute[install-grants]', :immediately
   end
 end
 
 cmd = install_grants_cmd
 log 'galera-grants' do
-  message 'Default passwords are not set for galera implementations: ' +
-          "Start the cluster with 'SET GLOBAL wsrep_provider_options=" +
-          '"pc.bootstrap=true";' + "', then load grants from '#{grants}'" +
+  message 'Default passwords are not set on galera cluster members: ' +
+          "Start the cluster (with 'SET GLOBAL wsrep_provider_options=" +
+          '"pc.bootstrap=true";' + "'), then load grants from '#{grants}'" +
           "with command '#{cmd}'"
   level   :warn
-  only_if { node['mysql']['implementation'] == 'galera' && node['mysql']['galera']['cluster']['enabled'] }
+  only_if { ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] and not( node['mysql']['galera']['master'] ) ) }
+end
+
+
+#----
+# Redeploy master galera.cnf, so as nto to create a new cluster on restart
+#----
+
+if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['master'] ) )
+
+  node['mysql']['galera']['master'] = false
+
+  template '/etc/mysql/conf.d/galera.cnf' do
+    source   'galera.cnf.erb'
+    owner    'root'
+    group    'mysql'
+    mode     '0640'
+  end
 end
 
 #----
 # Services & Helpers
-#---
+#----
 
 execute 'install-grants' do
   command  cmd
@@ -210,8 +227,9 @@ end
 service 'mysql' do
   service_provider = Chef::Provider::Service::Init::Debian
   if node['mysql']['implementation'] != 'mariadb' && node['mysql']['implementation'] != 'galera'
-    service_provider = Chef::Provider::Service::Upstart if 'ubuntu' == node['platform'] &&
-      Chef::VersionConstraint.new('>= 13.10').include?(node['platform_version'])
+    service_provider = Chef::Provider::Service::Upstart if(
+      ( node['platform'].eql?('ubuntu') ) and ( Chef::VersionConstraint.new('>= 13.10').include?(node['platform_version']) )
+    )
   end
   provider      service_provider
   service_name 'mysql'
