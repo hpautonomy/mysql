@@ -176,7 +176,7 @@ template grants do
   owner    'root'
   group    'root'
   mode     '0600'
-  if( not( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and not( node['mysql']['galera']['master'] ) ) )
+  if( not( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and not( node['mysql']['galera']['cluster']['master'] ) ) )
     notifies :run, 'execute[install-grants]', :immediately
   end
 end
@@ -185,10 +185,10 @@ cmd = install_grants_cmd
 log 'galera-grants' do
   message 'Default passwords are not set on galera cluster members: ' +
           "Start the cluster (with 'SET GLOBAL wsrep_provider_options=" +
-          '"pc.bootstrap=true";' + "'), then load grants from '#{grants}'" +
+          '"pc.bootstrap=true";' + "'), then load grants from '#{grants}' " +
           "with command '#{cmd}'"
   level   :warn
-  only_if { ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] and not( node['mysql']['galera']['master'] ) ) }
+  only_if { ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] and not( node['mysql']['galera']['cluster']['master'] ) ) }
 end
 
 
@@ -196,9 +196,9 @@ end
 # Redeploy master galera.cnf, so as nto to create a new cluster on restart
 #----
 
-if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['master'] ) )
+if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )
 
-  node['mysql']['galera']['master'] = false
+  node['mysql']['galera']['cluster']['master'] = false
 
   template '/etc/mysql/conf.d/galera.cnf' do
     source   'galera.cnf.erb'
