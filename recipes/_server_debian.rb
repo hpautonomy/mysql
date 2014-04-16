@@ -198,7 +198,7 @@ end
 
 if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )
 
-  node['mysql']['galera']['cluster']['master'] = false
+  node.default['mysql']['galera']['cluster']['master'] = false
 
   template '/etc/mysql/conf.d/galera.cnf' do
     source   'galera.cnf.erb'
