@@ -88,7 +88,8 @@ if( ( node['mysql']['implementation'].eql?('mariadb') ) or ( node['mysql']['impl
   end
 
   if( node['mysql']['implementation'].eql?('galera') )
-    template '/etc/mysql/conf.d/galera.cnf' do
+    template 'Cluster settings' do
+      path     '/etc/mysql/conf.d/galera.cnf'
       source   'galera.cnf.erb'
       owner    'root'
       group    'mysql'
@@ -200,7 +201,8 @@ if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['gale
 
   node.default['mysql']['galera']['cluster']['master'] = false
 
-  template '/etc/mysql/conf.d/galera.cnf' do
+  template 'Remove initiator cluster creation' do
+    path     '/etc/mysql/conf.d/galera.cnf'
     source   'galera.cnf.erb'
     owner    'root'
     group    'mysql'
