@@ -199,7 +199,7 @@ end
 
 if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )
 
-  node.default['mysql']['galera']['cluster']['master'] = false
+  node.force_override['mysql']['galera']['cluster']['master'] = false
 
   template 'Remove initiator cluster creation' do
     path     '/etc/mysql/conf.d/galera.cnf'
