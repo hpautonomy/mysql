@@ -195,7 +195,7 @@ end
 
 if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )
 
-  node.force_override['mysql']['galera']['cluster']['master'] = false
+  #node.force_override['mysql']['galera']['cluster']['master'] = false
 
   log 'galera-initiator' do
     message 'The Galera master configuration data in "/etc/mysql/conf.d/galera.cnf" ' +
@@ -206,13 +206,18 @@ if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['gale
     level   :warn
   end
 
-  template 'Remove initiator cluster creation' do
-    path     '/etc/mysql/conf.d/galera.cnf'
-    source   'galera.cnf.erb'
-    owner    'root'
-    group    'mysql'
-    mode     '0640'
-  end
+  # We're seeing follow-up services which write to the database fail, as the
+  # database is not running.  On inspection, the config file reflects the
+  # second deployment, as below.  Is the first being deployed correctly?
+  # Is there a race condition?  Temporarily commenting this section should
+  # aid diagnosis...
+  #template 'Remove initiator cluster creation' do
+  #  path     '/etc/mysql/conf.d/galera.cnf'
+  #  source   'galera.cnf.erb'
+  #  owner    'root'
+  #  group    'mysql'
+  #  mode     '0640'
+  #end
 
 end
 
