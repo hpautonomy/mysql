@@ -20,7 +20,11 @@
 # limitations under the License.
 #
 
-node.set['build-essential']['compile_time'] = true
+# build-essential-v2.0.0+:
+#node.set['build-essential']['compile_time'] = true
+# build-essential-v1.4.4:
+node.set['build-essential']['compiletime'] = true
+
 include_recipe 'build-essential::default'
 include_recipe 'mysql::client'
 
