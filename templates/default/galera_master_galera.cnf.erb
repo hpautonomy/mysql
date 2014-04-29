@@ -1,0 +1,12 @@
+# The entry below will start a new cluster - once the cluster is bootstrapped,
+# it is IMPERATIVE that the blank '"gcomm://"' entry be substituted with the
+# actual cluster definition, below, to ensure that if the initiator is ever
+# restarted it doesn't attempt to create yet another new cluster, leaving the
+# original permanently one node down...
+#
+# A solution to this is to append the option '?pc.wait_prim=no' to the 'gcomm'
+# definition to allow the database to start without active cluster membership,
+# but this is limited to 'mysqldump' SST and is apparently still a WIP feature.
+#
+wsrep_cluster_address		= "gcomm://"
+#wsrep_cluster_address		= "gcomm://<%= node['mysql']['galera']['cluster']['hosts'].join(',') + ( node['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + node['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>"

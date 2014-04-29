@@ -1,0 +1,15 @@
+<% if node['cpu']['real'] > 0 %>
+wsrep_slave_threads		=  <%= node['cpu']['real'] * 2 %>
+<% else %>
+wsrep_slave_threads		=  2
+<% end %>
+wsrep_sst_method		=  <%= node['mysql']['galera']['cluster']['sst']['method'] %>
+<% if node['mysql']['galera']['cluster']['sst']['auth'] && node['mysql']['galera']['cluster']['sst']['method'] != 'rsync' %>
+wsrep_sst_auth			= "<%= node['mysql']['galera']['cluster']['sst']['auth'] %>
+<% else %>
+#wsrep_sst_auth			= "user:pass"
+<% end %>
+
+# node configuration
+#wsrep_node_address		= "<% node['ipaddress'] %>"
+#wsrep_node_name		= "<% node['hostname'] %>"

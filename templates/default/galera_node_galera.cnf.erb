@@ -1,0 +1,1 @@
+wsrep_cluster_address		= "gcomm://<%= node['mysql']['galera']['cluster']['hosts'].join(',') + ( node['mysql']['galera']['cluster']['garbd']['enabled'] ? ',' + node['mysql']['galera']['cluster']['garbd']['host'] : '' ) %>"

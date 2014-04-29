@@ -1,0 +1,15 @@
+
+[mysqld]
+
+<%= render 'mysqld_galera.cnf.erb' %>
+
+#galera settings
+<%= render 'galera_head_galera.cnf.erb' %>
+<%= render 'galera_master_galera.cnf.erb' %>
+<%= render 'galera_tail_galera.cnf.erb' %>
+
+[sst]
+
+<%= render 'sst_galera.cnf.erb' %>
+
+# vi: set ts=8:
