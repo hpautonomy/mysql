@@ -198,9 +198,9 @@ if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['gale
   node.force_override['mysql']['galera']['cluster']['master'] = false
 
   log 'galera-initiator' do
-    message 'The Galera master configuration data in "/etc/mysql/conf.d/galera.cnf"' +
-            'is now being replaced with a version which allows the node designated' +
-	    '"master" to re-join an existing cluster.  If this process fails, then' +
+    message 'The Galera master configuration data in "/etc/mysql/conf.d/galera.cnf" ' +
+            'is now being replaced with a version which allows the node designated ' +
+	    '"master" to re-join an existing cluster.  If this process fails, then ' +
             'a new cluster can be started (from any node) by invoking: ' +
             '"/etc/init.d/mysql start --wsrep-cluster-address=gcomm://"'
     level   :warn
