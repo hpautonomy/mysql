@@ -190,7 +190,7 @@ end
 
 
 #----
-# Redeploy master galera.cnf, so as nto to create a new cluster on restart
+# Redeploy master galera.cnf, so as not to create a new cluster on restart
 #----
 
 if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )
@@ -213,6 +213,7 @@ if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['gale
     group    'mysql'
     mode     '0640'
   end
+
 end
 
 #----
