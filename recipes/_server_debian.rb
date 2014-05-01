@@ -72,7 +72,7 @@ end
 
 if( ( node['mysql']['implementation'].eql?('mariadb') ) or ( node['mysql']['implementation'].eql?('galera') ) )
 
-  cookbook_file '/etc/init.d/mysql' do
+  cookbook_file '/etc/init.d/mysql' do # ~FC009
     path          '/etc/init.d/mysql.dpkg-new'
     source        'mysql.initd'
     owner         'root'

@@ -1,6 +1,6 @@
-name		          'mysql'
-maintainer        'Opscode, Inc.'
-maintainer_email  'cookbooks@opscode.com'
+name              'mysql'
+maintainer        'HP Autonomy'
+maintainer_email  'stuart.shelton@hp.com'
 license           'Apache 2.0'
 description       'Installs and configures mysql for client or server'
 long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
@@ -23,6 +23,9 @@ supports 'mac_os_x'
 supports 'scientific'
 supports 'suse'
 supports 'windows'
+
+# Conditional dependency if we're running on Debian/Ubuntu
+depends 'apt'
 
 depends 'openssl',         '~> 1.1'
 depends 'build-essential', '~> 1.4'
