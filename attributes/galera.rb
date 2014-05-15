@@ -22,6 +22,7 @@
 #
 
 default['mysql']['galera']['cluster']['enabled'] = false
+# N.B. 'debug' is a literal value inserted into galera.cnf, not a boolean
 default['mysql']['galera']['cluster']['debug'] = 'ON'
 
 # Cluster name

@@ -1,5 +1,5 @@
 wsrep_debug			=  <%= node['mysql']['galera']['cluster']['debug'] %>
 
 <% if not node['mysql']['galera']['cluster']['enabled'] %>#<% end %>wsrep_provider			=  /usr/lib/galera/libgalera_smm.so
-#wsrep_provider_options		= "gcache.size=32G"
+#wsrep_provider_options		= "gcache.size=32G; gcache.name = /alternate_device/galera.cache"
 wsrep_cluster_name		=  <%= node['mysql']['galera']['cluster']['name'] %>

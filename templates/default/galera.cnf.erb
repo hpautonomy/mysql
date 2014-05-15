@@ -1,6 +1,19 @@
 
 [mysqld]
 
+# Enable GTID (Global Transaction IDentifier)
+gtid_mode			=  ON
+enforce_gtid_consistency
+log_bin				=  binlog
+log_slave_updates		=  1
+expire_log_days			=  7
+<% if node['mysql']['server_id'] %>
+server_id			=  <%= node['mysql']['server_id'] %>
+<% else %>
+#server_id			=  1
+<% end %>
+slave_net_timeout		=  60
+
 # mysql settings
 binlog_format			=  ROW
 default-storage-engine		=  innodb

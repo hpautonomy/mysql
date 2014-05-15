@@ -27,3 +27,8 @@ default['mysql']['implementation'] = 'mysql'
 # Potential future enhancement - would this ever be of any benefit?
 #default['mysql']['implementation']['client'] = 'mariadb'
 #default['mysql']['implementation']['server'] = 'galera'
+
+# ... on the other hand, this *would* be very useful
+#default['mysql']['implementation']['master'] = 'galera'
+#default['mysql']['implementation']['slave'] = 'mariadb'
+
