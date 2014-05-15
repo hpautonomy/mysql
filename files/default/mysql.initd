@@ -219,7 +219,7 @@ function main() {
 
 	case "${option:-}" in
 		'start')
-			local -i timeout=${MYSQLD_STARTUP_TIMEOUT:-120}
+			local -i timeout=${MYSQLD_STARTUP_TIMEOUT:-300}
 
 			sanity_checks || exit 1
 
@@ -277,6 +277,7 @@ function main() {
 					${verbose:+--verbose}                 \
 					--start                               \
 					-- "${@}" ${args:-}
+				log_progress_msg "'${BINDIR}/mysqld_safe started in background ..."
 
 				local microsleep="1"
 				local -i multiplier=1
@@ -299,11 +300,37 @@ function main() {
 				for i in $( seq 1 ${timeout} ); do
 					sleep "${microsleep}"
 					if mysqld_status check_alive nowarn; then
+						log_progress_msg "mysqld process detected as running ..."
 						break
 					fi
 					(( i % multiplier )) || log_progress_msg "."
 				done
 				if mysqld_status check_alive warn; then
+					local dbuser="root"
+					local dbhost="localhost"
+					local grants="/etc/mysql_grants.sql"
+					local rootpw="$( grep "'${dbuser}'@'${dbhost}'" "${grants}" | grep "PASSWORD" | cut -d"'" -f 6 )"
+
+					local -i waiting=1
+					local var val
+					while (( waiting )); do
+						while read var val; do
+							if [[ "${var:-}" != "wsrep_ready" ]]; then
+								# Not a Galera node...
+								log_progress_msg "mysqld is not a cluster node"
+								waiting=0
+								break 2
+							fi
+							if [[ "${val:-}" == "ON" ]]; then
+								log_progress_msg "mysqld cluster status is '${val}' ..."
+								waiting=0
+								break 2
+							else
+								log_progress_msg "mysqld cluster status is '${val:-}' - waiting for initialisation ..."
+								sleep 1
+							fi
+						done < <( mysql -u "${dbuser}" -p"${rootpw}" -h "${dbhost}" mysql <<<"SHOW STATUS LIKE 'wsrep_ready'" | tail -n +2 | head -n 1 )
+					done
 					log_end_msg 0
 
 					# Run site-local post-up script...
