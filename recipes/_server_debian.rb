@@ -38,6 +38,14 @@ template '/var/cache/local/preseeding/mysql-server.seed' do
   notifies :run, 'execute[preseed mysql-server]', :immediately
 end
 
+package debconf-utils; do
+  action :install
+end
+
+execute 'check for password' do
+  command '/usr/bin/debconf-get-selections | grep -E "(mysql|galera)-server.+/root_password.*\s+select\s+"'
+end
+
 #----
 # Install software
 #----
@@ -208,7 +216,7 @@ if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['gale
   log 'galera-initiator' do
     message 'The Galera master configuration data in "/etc/mysql/conf.d/galera.cnf" ' +
             'is now being replaced with a version which allows the node designated ' +
-	    '"master" to re-join an existing cluster.  If this process fails, then ' +
+            '"master" to re-join an existing cluster.  If this process fails, then ' +
             'a new cluster can be started (from any node) by invoking: ' +
             '"/etc/init.d/mysql start --wsrep-cluster-address=gcomm://"'
     level   :warn
