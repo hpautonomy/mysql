@@ -310,6 +310,7 @@ function main() {
 					local dbuser="root"
 					local dbhost="localhost"
 					local grants="/etc/mysql_grants.sql"
+					local -i finished=0
 
 					if ! [[ -r "${grants}" ]]; then
 						log_progress_msg "Cannot determine mysql root password - not checking cluster status"
@@ -319,12 +320,10 @@ function main() {
 						if ! [[ -n "${rootpw}" ]]; then
 							log_progress_msg "Cannot determine mysql root password - not checking cluster status"
 						else
-							local -i finished=0
+							local -i clustertimeout=$(( $( date +'%s' ) + timeout ))
 							local var val
 
-							local -i clustertimeout=$(( $( date +'%s' ) + timeout ))
-
-							while ! (( finished )); do
+							while (( !( finished ) )); do
 								while read var val; do
 									if [[ "${var:-}" != "wsrep_ready" ]]; then
 										# Not a Galera node...
