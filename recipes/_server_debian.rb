@@ -38,7 +38,7 @@ template '/var/cache/local/preseeding/mysql-server.seed' do
   notifies :run, 'execute[preseed mysql-server]', :immediately
 end
 
-package debconf-utils; do
+package 'debconf-utils' do
   action :install
 end
 
