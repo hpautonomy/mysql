@@ -319,27 +319,27 @@ function main() {
 						if ! [[ -n "${rootpw}" ]]; then
 							log_progress_msg "Cannot determine mysql root password - not checking cluster status"
 						else
-							local -i waiting=1
+							local -i finished=0
 							local var val
 
 							local -i clustertimeout=$(( $( date +'%s' ) + timeout ))
 
-							while (( waiting )); do
+							while ! (( finished )); do
 								while read var val; do
 									if [[ "${var:-}" != "wsrep_ready" ]]; then
 										# Not a Galera node...
 										log_progress_msg "mysqld is not a cluster node"
-										waiting=0
+										finished=1
 										break 2
 									fi
 									if [[ "${val:-}" == "ON" ]]; then
 										log_progress_msg "mysqld cluster status is '${val}' ..."
-										waiting=0
+										finished=1
 										break 2
 									else
 										if (( $( date +'%s' ) > clustertimeout )); then
 											log_progress_msg "Timed-out waiting for cluster synchronisation"
-											waiting=0
+											finished=2
 											break 2
 										fi
 
@@ -351,14 +351,18 @@ function main() {
 							done
 						fi
 					fi
-					log_end_msg 0
+					log_end_msg $(( finished > 1 ))
 
-					# Run site-local post-up script...
-					local output="$(
-						"${SYSCONFDIR}"/mysql/debian-start
-					)"
-					[[ -n "${output}" ]] && \
-						log_action_msg "${output}"
+					if (( 1 != finished )); then
+						log_failure_msg "Galera cluster failed to synchronise"
+					else
+						# Run site-local post-up script...
+						local output="$(
+							"${SYSCONFDIR}"/mysql/debian-start
+						)"
+						[[ -n "${output}" ]] && \
+							log_action_msg "${output}"
+					fi
 				else
 					log_end_msg 1
 					log_failure_msg "Please see syslog for details"
