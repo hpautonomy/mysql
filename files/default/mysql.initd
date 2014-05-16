@@ -277,6 +277,7 @@ function main() {
 					${verbose:+--verbose}                 \
 					--start                               \
 					-- "${@}" ${args:-}
+				log_progress_msg "'${BINDIR}/mysqld_safe started in background ..."
 
 				local microsleep="1"
 				local -i multiplier=1
@@ -290,20 +291,66 @@ function main() {
 				# 6s was reported in #352070 to be too few when using
 				# ndbcluster
 				(( timeout )) || timeout=120
+				local -i statustimeout=${timeout}
 				if (( 1 != multiplier )); then
-					timeout=$(
+					statustimeout=$(
 						  dc <<<"${timeout} ${multiplier} * p" \
 						| sed 's/\.0$//'
 					)
 				fi
-				for i in $( seq 1 ${timeout} ); do
+				for i in $( seq 1 ${statustimeout} ); do
 					sleep "${microsleep}"
 					if mysqld_status check_alive nowarn; then
+						log_progress_msg "mysqld process detected as running ..."
 						break
 					fi
 					(( i % multiplier )) || log_progress_msg "."
 				done
 				if mysqld_status check_alive warn; then
+					local dbuser="root"
+					local dbhost="localhost"
+					local grants="/etc/mysql_grants.sql"
+
+					if ! [[ -r "${grants}" ]]; then
+						log_progress_msg "Cannot determine mysql root password - not checking cluster status"
+					else
+						local rootpw="$( grep "'${dbuser}'@'${dbhost}'" "${grants}" | grep "PASSWORD" | cut -d"'" -f 6 )"
+
+						if ! [[ -n "${rootpw}" ]]; then
+							log_progress_msg "Cannot determine mysql root password - not checking cluster status"
+						else
+							local -i waiting=1
+							local var val
+
+							local -i clustertimeout=$(( $( date +'%s' ) + timeout ))
+
+							while (( waiting )); do
+								while read var val; do
+									if [[ "${var:-}" != "wsrep_ready" ]]; then
+										# Not a Galera node...
+										log_progress_msg "mysqld is not a cluster node"
+										waiting=0
+										break 2
+									fi
+									if [[ "${val:-}" == "ON" ]]; then
+										log_progress_msg "mysqld cluster status is '${val}' ..."
+										waiting=0
+										break 2
+									else
+										if (( $( date +'%s' ) > clustertimeout )); then
+											log_progress_msg "Timed-out waiting for cluster synchronisation"
+											waiting=0
+											break 2
+										fi
+
+										log_progress_msg "mysqld cluster status is '${val:-}' - waiting for initialisation ..."
+										sleep 1
+									fi
+
+								done < <( mysql -u "${dbuser}" -p"${rootpw}" -h "${dbhost}" mysql <<<"SHOW STATUS LIKE 'wsrep_ready'" | tail -n +2 | head -n 1 )
+							done
+						fi
+					fi
 					log_end_msg 0
 
 					# Run site-local post-up script...
