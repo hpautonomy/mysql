@@ -45,8 +45,15 @@ end
 # Either the apt cookbook doesn't pass-through environment variables, or dpkg
 # ignores them during installation.  Either way, this unfortunately doesn't
 # work :(
+#
 #ENV['DEBIAN_SCRIPT_DEBUG'] = '1'
 #ENV['MYSQLD_STARTUP_TIMEOUT'] = '120'
+
+# We kinda need this, though, so let's set it and hope for the best!
+# N.B. This is used by dpkg itself, rather than invoked init scripts, so
+# there's a better chance it'll be adhered to...
+#
+ENV['DEBIAN_FRONTEND'] = 'noninteractive'
 
 node['mysql']['server']['packages'].each do |name|
   package name do
