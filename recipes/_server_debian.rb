@@ -198,10 +198,10 @@ end
 
 cmd = install_grants_cmd
 log 'galera-grants' do
-  message 'Default passwords are not set on galera cluster members: ' +
-          "Start the cluster (with 'SET GLOBAL wsrep_provider_options=" +
-          '"pc.bootstrap=true";' + "'), then load grants from '#{grants}' " +
-          "with command '#{cmd}'"
+  message 'Default users are not provisioned on non-initiating galera cluster' +
+          "members: Start the cluster (with 'SET GLOBAL wsrep_provider_options" +
+          '="pc.bootstrap=true";' + "'), then load grants from '#{grants}' " +
+          "with command '#{cmd}' if necessary"
   level   :warn
   only_if { ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] and not( node['mysql']['galera']['cluster']['master'] ) ) }
 end
