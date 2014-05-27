@@ -38,13 +38,19 @@ template '/var/cache/local/preseeding/mysql-server.seed' do
   notifies :run, 'execute[preseed mysql-server]', :immediately
 end
 
+# Debug only:
+#
 package 'debconf-utils' do
   action :install
+  only_if { node['mysql']['debug'] }
 end
 
 execute 'check for password' do
   command '/usr/bin/debconf-get-selections | grep -E "(mysql|galera)-server.+/root_password.*\s+select\s+"'
+  only_if { node['mysql']['debug'] }
 end
+#
+# End debug
 
 #----
 # Install software
@@ -208,7 +214,7 @@ end
 
 
 #----
-# Redeploy master galera.cnf, so as not to create a new cluster on restart
+# Redeploy master galera.cnf, so as not to create a new cluster on restart of initiator node
 #----
 
 if( ( node['mysql']['implementation'].eql?('galera') ) and ( node['mysql']['galera']['cluster']['enabled'] ) and ( node['mysql']['galera']['cluster']['master'] ) )

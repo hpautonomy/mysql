@@ -17,18 +17,25 @@
 # limitations under the License.
 #
 
+# Enable additional debugging routines:
+#
+default['mysql']['debug'] = false
+
 # Select MySQL implementation:
 #  - mariadb : MariaDB 5.5 unclustered server, MariaDB client
 #  - galera  : MariaDB 5.5 Galera server, MariaDB client
 #  - percona : Percona server, MySQL client [incomplete, unsupported]
 #  - mysql   : Oracle MySQL server, MySQL client
+#
 default['mysql']['implementation'] = 'mysql'
 
 # Potential future enhancement - would this ever be of any benefit?
+#
 #default['mysql']['implementation']['client'] = 'mariadb'
 #default['mysql']['implementation']['server'] = 'galera'
 
 # ... on the other hand, this *would* be very useful
+#
 #default['mysql']['implementation']['master'] = 'galera'
 #default['mysql']['implementation']['slave'] = 'mariadb'
 
