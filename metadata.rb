@@ -25,7 +25,7 @@ supports 'suse'
 supports 'windows'
 
 # Conditional dependency if we're running on Debian/Ubuntu
-depends 'apt'
+depends 'apt',             '>= 2.4.0'
 
 depends 'openssl',         '>= 1.1'
 depends 'build-essential', '>= 2.0.0'
