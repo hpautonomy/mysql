@@ -24,7 +24,10 @@
 node.set['build-essential']['compile_time'] = true
 # build-essential now refrains from handling any apt-related issues with cache
 # staleness, and so an additional option is required.
-node.set['apt']['compile_time_update'] = true
+# ... however, this "fix" tries to run at compile time from a recipe rather
+# than from a library, and so build-essential *still* pre-empts it, and fails.
+# This should now instead be fixed (properly) by a forked build-essential.
+#node.set['apt']['compile_time_update'] = true
 
 # build-essential-v1.4.4:
 #node.set['build_essential']['compiletime'] = true
