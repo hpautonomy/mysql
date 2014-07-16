@@ -249,6 +249,16 @@ function main() {
 				if [[ -n "${DEBIAN_SCRIPT_DEBUG:-}" ]]; then
 					args="--verbose"
 				fi
+				if "${MYSQLD}" --version 2>/dev/null | grep -qi 'MariaDB'; then
+					# The following line will not work on CentOS/Red Hat, as
+					# their default version of grep is broken, and can't parse
+					# '\s' escapes.  s|\s|[[:space:]]| should fix this, but
+					# meh - they should fix their grep.
+					#
+					local -i extraport=$(( $( grep -Eom 1 '^\s*port\s*=\s*[0-9]{1,5}\s*($|#)' "${CONF}" | cut -d'=' -f 2 ) + 1 ))
+					args="${args:+${args} }--extra-port=${extraport} --extra-max-connections=1"
+					unset extraport
+				fi
 
 				# Load AppArmor profile
 				if type -pf aa-status >/dev/null 2>&1; then

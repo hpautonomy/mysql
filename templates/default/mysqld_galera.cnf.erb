@@ -15,3 +15,13 @@ bind-address			=  0.0.0.0
 #query_cache_type		=  0
 #bind-address			=  0.0.0.0
 <% end %>
+<% if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' %>
+
+# mariadb thread-pooling
+thread_handling			= pool-of-threads
+#thread_pool_size		= <number of processors>
+#thread_pool_stall_limit	= 500
+#thread_pool_max_threads	= 500
+#thread_pool_idle_timeout	= 60
+#thread_pool_oversubscribe	= 3 # Internal parameter - change at your own risk!
+<% end %>
