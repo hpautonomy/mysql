@@ -38,4 +38,7 @@ default['mysql']['implementation'] = 'mysql'
 #
 #default['mysql']['implementation']['master'] = 'galera'
 #default['mysql']['implementation']['slave'] = 'mariadb'
+#
+# ... except that with MariaDB 10.x, compatibility with MySQL is no
+# longer guaranteed.
 

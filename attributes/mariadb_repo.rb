@@ -19,5 +19,9 @@
 
 default['mysql']['mariadb']['apt_keyserver'] = 'hkp://keyserver.ubuntu.com:80'
 default['mysql']['mariadb']['apt_key_id'] = '1BB943DB'
-#default['mysql']['mariadb']['apt_uri'] = 'http://mirror.jmu.edu/pub/mariadb/repo/5.5/ubuntu'
-default['mysql']['mariadb']['apt_uri'] = 'http://ftp.osuosl.org/pub/mariadb/repo/5.5/ubuntu'
+
+# MariaDB 5.5
+#default['mysql']['mariadb']['apt_uri'] = 'http://ftp.osuosl.org/pub/mariadb/repo/5.5/ubuntu'
+
+# MariaDB 10.0
+default['mysql']['mariadb']['apt_uri'] = 'http://ftp.osuosl.org/pub/mariadb/repo/10.0/ubuntu'
