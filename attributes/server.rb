@@ -113,7 +113,6 @@ default['mysql']['tunable']['read_only']                           =   false
 default['mysql']['tunable']['log_error']                           =   nil
 default['mysql']['tunable']['log_warnings']                        =   false
 default['mysql']['tunable']['log_queries_not_using_index']         =   true
-default['mysql']['tunable']['log_bin_trust_function_creators']     =   false
 
 default['mysql']['tunable']['innodb_log_file_size']                =  '5M'
 default['mysql']['tunable']['innodb_buffer_pool_size']             =  '128M'
@@ -160,7 +159,11 @@ default['mysql']['innodb_status_file']                             =   false
 unless node['platform_family'] == 'rhel' && node['platform_version'].to_i < 6
   # older RHEL platforms don't support these options
   default['mysql']['tunable']['event_scheduler']                   =   0
-  default['mysql']['tunable']['binlog_format']                     =  'statement' if node['mysql']['tunable']['log_bin']
+  if node['mysql']['implementation'] == 'galera'
+    default['mysql']['tunable']['binlog_format']                   =  'ROW'
+  else
+    default['mysql']['tunable']['binlog_format']                   =  'statement' if node['mysql']['tunable']['log_bin']
+  end
 end
 
 # security options

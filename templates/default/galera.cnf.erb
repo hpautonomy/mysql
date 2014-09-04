@@ -4,8 +4,8 @@
 # Enable GTID (Global Transaction IDentifier)
 gtid_mode			=  ON
 enforce_gtid_consistency
-log_bin				=  binlog
-log_slave_updates		=  1
+#log_bin			=  <%= node['mysql']['tunable']['log_bin'] %>
+#log_slave_updates		=  1
 expire_log_days			=  7
 <% if node['mysql']['server_id'] %>
 server_id			=  <%= node['mysql']['server_id'] %>
