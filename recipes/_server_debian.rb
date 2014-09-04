@@ -188,8 +188,8 @@ execute 'dpkg-configure-pending' do
 end
 
 execute 'mysql_upgrade' do
-  command       "mysql_upgrade -u root -p#{ node['mysql']['server_root_password'] }"
-  allow_failure  true
+  command        "mysql_upgrade -u root -p#{ node['mysql']['server_root_password'] }"
+  ignore_failure  true
 end
 
 #----
