@@ -22,23 +22,14 @@
 default['mysql']['debug'] = false
 
 # Select MySQL implementation:
-#  - mariadb : MariaDB 5.5 unclustered server, MariaDB client
-#  - galera  : MariaDB 5.5 Galera server, MariaDB client
+#  - mariadb : MariaDB 10.0 unclustered server, MariaDB client
+#  - galera  : MariaDB 10.0 Galera server, MariaDB client
 #  - percona : Percona server, MySQL client [incomplete, unsupported]
 #  - mysql   : Oracle MySQL server, MySQL client
 #
 default['mysql']['implementation'] = 'mysql'
 
-# Potential future enhancement - would this ever be of any benefit?
-#
-#default['mysql']['implementation']['client'] = 'mariadb'
-#default['mysql']['implementation']['server'] = 'galera'
-
-# ... on the other hand, this *would* be very useful
+# Potential future enhancement ...
 #
 #default['mysql']['implementation']['master'] = 'galera'
 #default['mysql']['implementation']['slave'] = 'mariadb'
-#
-# ... except that with MariaDB 10.x, compatibility with MySQL is no
-# longer guaranteed.
-

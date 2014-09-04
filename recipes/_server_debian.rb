@@ -187,6 +187,11 @@ execute 'dpkg-configure-pending' do
   command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
 end
 
+execute 'mysql_upgrade' do
+  command       "mysql_upgrade -u root -p#{ node['mysql']['server_root_password'] }"
+  allow_failure  true
+end
+
 #----
 # Grants
 #----
