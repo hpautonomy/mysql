@@ -54,10 +54,18 @@ MYADMIN="${BINDIR}/mysqladmin --defaults-file=${SYSCONFDIR}/mysql/debian.cnf"
 # Priority can be overriden; '-s' adds output to stderr
 ERR_LOGGER="logger -p daemon.err -t ${SYSCONFDIR}/init.d/mysql -i"
 
-test -x "${MYSQLD}" || exit 1
+if ! test -x "${MYSQLD}"; then
+	echo "FATAL: ${MYSQLD} not found"
+	if test x"${1:-}" = x"stop"; then
+		exit 0
+	else
+		exit 1
+	fi
+fi
 
-test -s /lib/lsb/init-functions || exit 1
-. /lib/lsb/init-functions || exit 1
+test -s /lib/lsb/init-functions || { echo "FATAL: /lib/lsb/init-functions does not exist" ; exit 1 ; }
+. /lib/lsb/init-functions || { echo "FATAL: /lib/lsb/init-functions failed to execute" ; exit 1 ; }
+
 
 function log_warning() {
 	local message="${@}"
