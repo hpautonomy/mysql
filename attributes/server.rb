@@ -97,7 +97,29 @@ default['mysql']['tunable']['log_bin_trust_function_creators']     =   false
 
 default['mysql']['tunable']['relay_log']                           =   nil
 default['mysql']['tunable']['relay_log_index']                     =   nil
+
+# The following tunables are deprecated as of MySQL-5.5:
+#default['mysql']['tunable']['master_host']                        =   nil
+#default['mysql']['tunable']['master_user']                        =  'repl'
+##default['mysql']['tunable']['master_password']                   =   nil
+## ... instead use node['mysql']['server_repl_password']
+#default['mysql']['tunable']['master_port']                        =   nil
+#default['mysql']['tunable']['master_connect_retry']               =   nil
+
+default['mysql']['tunable']['slave-parallel-workers']              =   0
+default['mysql']['tunable']['slave-sql-verify-checksum']           =   0
+default['mysql']['tunable']['master-info-repository']              =  'FILE'
+default['mysql']['tunable']['relay-log-info-repository']           =  'FILE'
+# Only safe if 'relay-log-info-repository' = 'TABLE' and
+# 'relay-log-purge' is enabled (which is default) ...
+default['mysql']['tunable']['relay-log-recovery']                  =   false
+
+# 'log_slave_updates' is only deployed if 'log_bin' is also set ...
 default['mysql']['tunable']['log_slave_updates']                   =   false
+
+default['mysql']['tunable']['log_slow_slave_statements']           =   false
+
+default['mysql']['tunable']['report_host']                         =   nil
 
 default['mysql']['tunable']['replicate_do_db']                     =   nil
 default['mysql']['tunable']['replicate_do_table']                  =   nil
@@ -111,7 +133,7 @@ default['mysql']['tunable']['skip_slave_start']                    =   false
 default['mysql']['tunable']['read_only']                           =   false
 
 default['mysql']['tunable']['log_error']                           =   nil
-default['mysql']['tunable']['log_warnings']                        =   false
+default['mysql']['tunable']['log_warnings']                        =   1
 default['mysql']['tunable']['log_queries_not_using_index']         =   true
 
 default['mysql']['tunable']['innodb_log_file_size']                =  '5M'
