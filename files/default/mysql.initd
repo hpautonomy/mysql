@@ -91,16 +91,19 @@ function abort() {
 	#        but should we instead be looking for specifically dpkg beneath
 	#        chef?
 	#
+	# N.B.:  Don't use 'test -s' against files in proc - they will often return
+	#        size zero, even if they contain content...
+	#
 	
 	local stats
 	local -i pid=${$} ppid
 	while true; do
 			(( 1 == pid )) && exit ${rc}
-			[[ -d /proc/${pid} && -s /proc/${pid}/stat ]] || exit ${rc}
+			[[ -d /proc/${pid} && -r /proc/${pid}/stat ]] || exit ${rc}
 			stats=( $( < /proc/${pid}/stat ) )
 			ppid=${stats[3]}
 			(( 0 == ppid || 1 == ppid )) && exit ${rc}
-			[[ -d /proc/${ppid} && -s /proc/${ppid}/comm ]] || exit ${rc}
+			[[ -d /proc/${ppid} && -r /proc/${ppid}/comm ]] || exit ${rc}
 			case "$( < /proc/${ppid}/comm )" in
 				dpkg*|chef|chef-solo)
 					echo >&2 "Running from '$( < /proc/${ppid}/comm )', aborting with result ${rc} => 0"
@@ -111,7 +114,8 @@ function abort() {
 	done
 
 	# Unreachable
-	exit 1
+	exit 128
+	# ... 128 is 'Invalid argument to exit', which is semi-relevant here...
 } # abort
 
 function log_warning() {
