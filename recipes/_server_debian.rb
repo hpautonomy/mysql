@@ -187,9 +187,12 @@ execute 'dpkg-configure-pending' do
   command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
 end
 
+# 'mysql_upgrade should be invoked by the post-install scripts on Debian...
+#
 execute 'mysql_upgrade' do
   command        "mysql_upgrade -u root -p#{ node['mysql']['server_root_password'] }"
   ignore_failure  true
+  not_if { node['platform_family'].eql?('ubuntu') or node['platform_family'].eql?('debian') }
 end
 
 #----
