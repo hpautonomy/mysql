@@ -388,7 +388,7 @@ function main() {
 					log_action_msg "  CHANGE MASTER TO master_host='<master>', master_user='repl',"
 					log_action_msg "      master_password='<password>', master_log_file='<log>',"
 					log_action_msg "      master_log_pos=<co-ordinate>;"
-				else
+				else # [[ -r /etc/mysql/conf.d/galera.cnf ]]
 					local dbuser="root"
 					local dbhost="localhost"
 					local grants="/etc/mysql_grants.sql"
@@ -437,7 +437,7 @@ function main() {
 						log_failure_msg "Galera cluster failed to synchronise"
 						return 1
 					fi
-				fi # ! [[ -r /etc/mysql/conf.d/galera.cnf ]]
+				fi # [[ -r /etc/mysql/conf.d/galera.cnf ]]
 
 				if [[ -r "${SYSCONFDIR}"/mysql/debian-start ]]; then
 					# Run site-local post-up script...
