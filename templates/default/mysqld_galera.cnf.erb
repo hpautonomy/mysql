@@ -19,7 +19,7 @@ bind-address			=  0.0.0.0
 <% if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' %>
 
 # mariadb thread-pooling
-thread_handling			= pool-of-threads
+#thread_handling		= pool-of-threads # Appears to induce causality errors :(
 #thread_pool_size		= <number of processors>
 #thread_pool_stall_limit	= 500
 #thread_pool_max_threads	= 500

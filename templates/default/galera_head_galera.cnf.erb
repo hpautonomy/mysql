@@ -11,5 +11,22 @@ wsrep_sst_auth			= "<%= node['mysql']['galera']['cluster']['sst']['auth'] %>
 <% end %>
 
 # node configuration
+#
 #wsrep_node_address		= "<% node['ipaddress'] %>"
 #wsrep_node_name		= "<% node['hostname'] %>"
+
+# extend causality checks to READ operations
+#
+# wsrep_sync_wait is a bit-mask resulting from the bitwise-AND of zero or more
+# of the following values:
+# 1 - READ (includes SELECT, SHOW and BEGIN/START TRANSACTION);
+# 2 - UPDATE and DELETE;
+# 4 - INSERT and REPLACE.
+# ... with a default value of 0.
+#
+<% if node['mysql']['galera']['cluster']['tunables']['wsrep_sync_wait'] > 0 %>
+wsrep_sync_wait                 =  <%= node['mysql']['galera']['cluster']['tunables']['wsrep_sync_wait'] %>
+<% else %>
+wsrep_sync_wait                 =  0
+<% end %>
+

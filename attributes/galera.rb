@@ -22,12 +22,20 @@
 #
 
 default['mysql']['galera']['cluster']['enabled'] = false
-# N.B. 'debug' is a literal value inserted into galera.cnf, not a boolean
+# N.B. The value of 'debug' is a literal inserted directly into galera.cnf, not
+#      a boolean ...
 default['mysql']['galera']['cluster']['debug'] = 'ON'
 
 # Cluster name
 #
 default['mysql']['galera']['cluster']['name'] = 'db-cluster'
+
+# Cluster tunables
+#
+# See templates directory for details of the values for- and effects of- the
+# settings below ...
+#
+default['mysql']['galera']['cluster']['tunables']['wsrep_sync_wait'] = 0
 
 # Should the current instance should run '--wsrep-new-cluster' on startup?
 #
