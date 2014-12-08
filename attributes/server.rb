@@ -85,6 +85,7 @@ default['mysql']['tunable']['wait_timeout']                        =  '180'
 default['mysql']['tunable']['open-files-limit']                    =  '1024'
 
 default['mysql']['tunable']['sql_mode']                            =   nil
+default['mysql']['tunable']['innodb_strict_mode']                  =   false
 
 default['mysql']['tunable']['skip-character-set-client-handshake'] =   false
 default['mysql']['tunable']['skip-name-resolve']                   =   false

@@ -118,6 +118,7 @@ open-files-limit		= <%= node['mysql']['tunable']['open-files-limit'] %>
 # Default Table Settings
 <% if node['mysql']['tunable']['sql_mode'] %>
 sql_mode			= "<%= node['mysql']['tunable']['sql_mode'] %>"
+innodb_strict_mode		= "<%= node['mysql']['tunable']['innodb_strict_mode'] %>"
 <% end %>
 
 #
