@@ -83,7 +83,7 @@ node['mysql']['server']['packages'].each do |name|
               '\"--force-confnew\"; '               + \
               '\"--force-confdef\"; '               + \
             '};"'
-    action :install
+    action :upgrade
   end
 end
 
@@ -185,6 +185,23 @@ end
 
 execute 'dpkg-configure-pending' do
   command  'dpkg --configure --pending --debug=10043 --force-confnew --force-confdef'
+end
+
+# Client libraries may have been updated, causing dependent components to
+# fail...
+chef_gem 'Remove potentially outdated mysql gem' do
+  package_name 'mysql'
+  options(
+               :force => true
+	 )
+  action       :purge
+end
+chef_gem 'Reinstall mysql gem' do
+  package_name 'mysql'
+  options(
+               :force => true
+	 )
+  action       :install
 end
 
 # 'mysql_upgrade should be invoked by the post-install scripts on Debian...
