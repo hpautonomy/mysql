@@ -189,14 +189,14 @@ end
 
 # Client libraries may have been updated, causing dependent components to
 # fail...
-chef_gem 'Remove potentially outdated mysql gem' do
+gem_package 'Remove potentially outdated mysql gem' do
   package_name 'mysql'
   options(
                :force => true
 	 )
   action       :purge
 end
-chef_gem 'Reinstall mysql gem' do
+gem_package 'Reinstall mysql gem' do
   package_name 'mysql'
   options(
                :force => true
