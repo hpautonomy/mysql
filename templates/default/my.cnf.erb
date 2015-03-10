@@ -81,7 +81,16 @@ bind-address			= <%= node['mysql']['bind_address'] %>
 #
 # * Fine Tuning
 #
+<% if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' %>
+key_buffer_size			= 16K
+<%   if node['mysql']['tunable']['aria_pagecache_buffer_size'] %>
+aria_pagecache_buffer_size      = <%= node['mysql']['tunable']['aria_pagecache_buffer_size'] %>
+<%   else %>
+aria_pagecache_buffer_size      = <%= node['mysql']['tunable']['key_buffer_size'] %>
+<%   end %>
+<% else %>
 key_buffer_size			= <%= node['mysql']['tunable']['key_buffer_size'] %>
+<% end %>
 max_allowed_packet		= <%= node['mysql']['tunable']['max_allowed_packet'] %>
 thread_stack			= <%= node['mysql']['tunable']['thread_stack'] %>
 thread_cache_size		= <%= node['mysql']['tunable']['thread_cache_size'] %>
@@ -185,24 +194,32 @@ binlog_cache_size		= <%= node['mysql']['tunable']['binlog_cache_size'] %>
 #binlog_ignore_db		= include_database_name
 <% if node['mysql']['tunable']['relay_log'] %>
 relay_log			= <%= node['mysql']['tunable']['relay_log'] %>
+<% else %>
+relay_log			= mysqld-relay-bin
 <% end %>
 <% if node['mysql']['tunable']['relay_log_index'] %>
 relay_log_index			= <%= node['mysql']['tunable']['relay_log_index'] %>
 <% end %>
 
-<% if not node['mysql']['tunable']['slave-parallel-workers'].eql?(0) %>
+<% if not node['mysql']['implementation'] == 'mariadb' and not node['mysql']['implementation'] == 'galera' and not node['mysql']['tunable']['slave-parallel-workers'].eql?(0) %>
 slave-parallel-workers		= <%= node['mysql']['tunable']['slave-parallel-workers'] %>
 <% end %>
 <% if not node['mysql']['tunable']['slave-sql-verify-checksum'].eql?(0) %>
 slave-sql-verify-checksum	= <%= node['mysql']['tunable']['slave-sql-verify-checksum'] %>
 <% end %>
-<% if node['mysql']['tunable']['master-info-repository'].eql?('TABLE') %>
-master-info-repository		= TABLE
-<% end %>
-<% if node['mysql']['tunable']['relay-log-info-repository'].eql?('TABLE') %>
-relay-log-info-repository	= TABLE
+<% if node['mysql']['implementation'] == 'mariadb' || node['mysql']['implementation'] == 'galera' %>
 <%   if node['mysql']['tunable']['relay-log-recovery'] %>
 relay-log-recovery		= 1
+<%   end %>
+<% else %>
+<%   if node['mysql']['tunable']['master-info-repository'].eql?('TABLE') %>
+master-info-repository		= TABLE
+<%   end %>
+<%   if node['mysql']['tunable']['relay-log-info-repository'].eql?('TABLE') %>
+relay-log-info-repository	= TABLE
+<%     if node['mysql']['tunable']['relay-log-recovery'] %>
+relay-log-recovery		= 1
+<%     end %>
 <%   end %>
 <% end %>
 
@@ -239,6 +256,10 @@ replicate_wild_ignore_table	= <%= table %>
 
 
 sync_binlog			= <%= node['mysql']['tunable']['sync_binlog'] %>
+
+<% if node['mysql']['tunable']['slave_skip_errors'] %>
+slave_skip_errors               = <%= node['mysql']['tunable']['slave_skip_errors'] %>
+<% end %>
 <% if node['mysql']['tunable']['skip_slave_start'] %>
 skip_slave_start
 <% end %>

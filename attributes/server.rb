@@ -107,18 +107,22 @@ default['mysql']['tunable']['relay_log_index']                     =   nil
 #default['mysql']['tunable']['master_port']                        =   nil
 #default['mysql']['tunable']['master_connect_retry']               =   nil
 
+# MySQL-5.6 compatibility options which have no effect for MariaDB/Galera:
 default['mysql']['tunable']['slave-parallel-workers']              =   0
-default['mysql']['tunable']['slave-sql-verify-checksum']           =   0
 default['mysql']['tunable']['master-info-repository']              =  'FILE'
 default['mysql']['tunable']['relay-log-info-repository']           =  'FILE'
 # Only safe if 'relay-log-info-repository' = 'TABLE' and
 # 'relay-log-purge' is enabled (which is default) ...
 default['mysql']['tunable']['relay-log-recovery']                  =   false
 
+default['mysql']['tunable']['slave-sql-verify-checksum']           =   0
+
 # 'log_slave_updates' is only deployed if 'log_bin' is also set ...
 default['mysql']['tunable']['log_slave_updates']                   =   false
-
 default['mysql']['tunable']['log_slow_slave_statements']           =   false
+
+# Comma-separated list of replication errors to ignore, e.g. '1032,1054,1062':
+default['mysql']['tunable']['slave_skip_errors']                   =   nil
 
 default['mysql']['tunable']['report_host']                         =   nil
 
