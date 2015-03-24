@@ -12,7 +12,7 @@ when 'debian'
     when 'galera'
       include_attribute 'mysql::galera'
 
-      default['mysql']['server']['packages'] = %w{ galera mariadb-galera-server }
+      default['mysql']['server']['packages'] = %w{ galera-3 mariadb-galera-server }
 
     else
       default['mysql']['server']['packages'] = %w{ mysql-server apparmor-utils }
